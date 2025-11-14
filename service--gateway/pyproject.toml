@@ -1,0 +1,66 @@
+[project]
+name = "gateway"
+version = "0.0.1"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.115.6",
+    "python-multipart~=0.0.19",
+    "uvicorn[standard]==0.32.1",
+    "python-magic==0.4.27",
+    "pydantic~=2.11.7",
+    "loguru~=0.7.2",
+    "pydantic-settings~=2.10.1",
+    "starlette~=0.41.3",
+
+    "mmar-ptag~=1.0.12",
+    "mmar-mapi~=1.2.5",
+    "mmar-utils~=1.1.2",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+       "ANN", # type annotations
+       "I", # imports
+       "F", # undefined names
+]
+ignore = [
+       "ANN204", # ignoring `__init__(self, ...) -> None`
+       "ANN401", # ignoring `: typing.Any`
+]
+
+
+[tool.mypy]
+python_version = "3.13"
+warn_unused_configs = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+no_implicit_optional = true
+strict_optional = true
+exclude = ["test.py"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[dependency-groups]
+dev = [
+    "pytest~=8.4.2",
+    "pytest-asyncio~=1.1.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

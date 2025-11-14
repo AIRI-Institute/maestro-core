@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+service PTAGService {
+  rpc Invoke(PTAGRequest) returns (PTAGResponse);
+}
+
+message PTAGRequest {
+  string FunctionName = 1;
+  bytes Payload = 2;
+}
+
+message PTAGResponse {
+  string FunctionName = 1;
+  bytes Payload = 2;
+}
+

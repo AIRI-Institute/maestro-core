@@ -1,0 +1,69 @@
+[project]
+name = "mmar-mcli"
+# dynamic version is not supported yet on uv_build
+version = "1.0.7"
+description = "Client to Maestro"
+authors = [{name = "tagin", email = "tagin@airi.net"}]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = []
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Documentation",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aiohttp==3.12.15",
+    "loguru==0.7.3",
+
+    "mmar_mapi~=1.2.5",
+    "mmar_utils~=1.1.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.14,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "mmar_mcli"
+source-exclude = [".ruff_cache"]
+
+[dependency-groups]
+ci = [
+    "ruff>=0.4",
+    "pytest>=8.2",
+    "pytest-asyncio>=1.0.0",
+]
+
+[tool.uv]
+default-groups = ["ci"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[pytest]
+python_files = [ "test_*.py" ]
+testpaths = [ "tests" ]
+
+# action:message_regex:warning_class:module_regex:line
+filterwarnings = [ "error" ]
+
+[mypy]
+ignore_missing_imports = true
+exclude = "tests/fixtures/"
+warn_unused_ignores = true
+show_error_codes = true

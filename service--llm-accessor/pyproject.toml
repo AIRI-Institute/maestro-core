@@ -1,0 +1,30 @@
+[project]
+name = "llm-accessor"
+version = "0.1.0"
+description = "Gateway accessor to any LLM instance"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic~=2.11.10",
+    "pydantic-settings~=2.11.0",
+
+    "mmar-llm~=1.1.2",
+    "mmar-mapi~=1.2.5",
+    "mmar-ptag~=1.0.12",
+    "mmar-utils~=1.1.2",
+]
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.0.1",
+]
+
+[tool.mypy]
+plugins = [
+    "pydantic.mypy",
+]

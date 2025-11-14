@@ -1,0 +1,30 @@
+[project]
+name = "chat-manager-examples"
+version = "0.0.1"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic~=2.11.7",
+    "pydantic-settings~=2.10.1",
+    "loguru~=0.7.2",
+
+    "mmar-mapi~=1.2.6",
+    "mmar-ptag~=1.0.12",
+    "mmar-utils~=1.1.4",
+    "mmar-llm~=1.1.3",
+]
+
+[dependency-groups]
+dev = [
+    "tabulate",
+    "pytest>=8.4.1",
+]
+
+
+[tool.ruff]
+line-length = 120
+
+[tool.uv]
+prerelease = "if-necessary"

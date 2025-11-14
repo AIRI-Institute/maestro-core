@@ -1,0 +1,25 @@
+x-common: &common
+  networks: [ network ]
+  restart: "no"
+  volumes: [ "./data:/mnt/data" ]
+  environment:
+    TZ: Europe/Moscow
+    ENV_FILE: /mnt/data/.env
+networks: { network: { driver: bridge, name: "network-maestro-core" } }
+
+services:
+  gateway:
+    build: { context: ./service--gateway }
+    image: maestro-core--gateway
+    ports: ['7732:7732']
+    <<: *common
+  chat-manager-examples:
+    build: { context: ./service--chat-manager-examples }
+    image: maestro-core--chat-manager-examples
+    ports: ['17231:17231']
+    <<: *common
+  llm-accessor:
+    build: {context: ./service--llm-accessor }
+    image: maestro-core--llm-accessor
+    ports: ['40631:40631']
+    <<: *common
