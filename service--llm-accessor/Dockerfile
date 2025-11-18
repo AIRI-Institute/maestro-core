@@ -5,7 +5,7 @@ WORKDIR /app/llm-accessor
 
 RUN --mount=type=cache,target=/root/.cache/uv \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-  uv sync --no-dev --prerelease=allow --refresh-package=mmar-utils --refresh-package=mmar-ptag
+  uv sync --no-dev --prerelease=allow --refresh-package=mmar-utils --refresh-package=mmar-ptag --refresh-package=mmar-llm
 
 COPY pyproject.toml pyproject.toml
 COPY src/ src/

@@ -1,9 +1,10 @@
 import warnings
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict, TypeVar
+from typing import Any, Literal, NotRequired, TypeVar
 
 from pydantic import Field
+from typing_extensions import TypedDict
 
 from mmar_mapi.models.widget import Widget
 from mmar_mapi.type_union import TypeUnion
@@ -151,9 +152,6 @@ def _get_widget(obj: Content) -> Widget | None:
     return None
 
 
-# todo fix: generalize functions _get_field
-
-
 class BaseMessage(Base):
     type: str
     content: Content = Field("", examples=["Привет"])
@@ -170,11 +168,6 @@ class BaseMessage(Base):
 
     def with_content(self, content: Content) -> "BaseMessage":
         return self.model_copy(update=dict(content=content))
-
-    @property
-    def body(self) -> str:
-        # legacy: eliminate after migration
-        return self.text
 
     @property
     def resource_id(self) -> str | None:
@@ -223,12 +216,12 @@ class BaseMessage(Base):
             return None
         return resource_id
 
-    # todo fix: ChatMessage returned
     @staticmethod
     def has_state(msg: "BaseMessage", state: str) -> Any | None:
         if not msg.is_ai:
             return None
         return msg if msg.state == state else None
+
 
 class HumanMessage(BaseMessage):
     type: Literal["human"] = "human"

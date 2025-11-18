@@ -1,5 +1,5 @@
 from pydantic import BaseModel, AfterValidator
-from typing import Annotated, Dict
+from typing import Annotated
 
 
 def check_corresponding_keys(dictionary):
@@ -22,7 +22,10 @@ Entrypoints = Annotated[dict[str, EntrypointConfig], AfterValidator(check_corres
 
 class EntrypointsConfig(BaseModel):
     entrypoints: Entrypoints
-    default_entrypoint_key: str
+    default_entrypoint_key: str | None = None
     default_image_entrypoint_key: str | None = None
     default_file_entrypoint_key: str | None = None
-    warmup: bool
+    warmup: bool = False
+
+
+ENTRYPOINTS_CONFIG_EMPTY = EntrypointsConfig(entrypoints={})

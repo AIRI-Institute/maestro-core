@@ -22,7 +22,7 @@ class YandexGPTEntryPoint(AbstractEntryPoint):
         ).json()["iamToken"]
         self.folder_id = folder_id
         self.text_url = text_url
-        self.emb_url = emb_url,
+        self.emb_url = (emb_url,)
         self.doc_uri = f"emb://{self.folder_id}/text-search-doc/latest"
         self.query_uri = f"emb://{self.folder_id}/text-search-query/latest"
         self.headers = {

@@ -36,8 +36,8 @@ class StateActionPolicyTrack(TrackI):
     def get_response(self, chat: Chat) -> list[ChatMessage]:
         user_message = chat.get_last_user_message()
         if not user_message:
+            # assuming here that track is reactive: if last message is not from user, no reaction needed
             logger.warning("Not user message found! Returning empty")
-            # todo fix: how to handle requests, if last messages is from bot?
             return []
 
         state = self.select_state(chat, user_message)
@@ -73,8 +73,8 @@ class SimpleTrack(TrackI):
     def get_response(self, chat: Chat) -> list[ChatMessage]:
         user_message = chat.get_last_user_message()
         if not user_message:
+            # assuming here that track is reactive: if last message is not from user, no reaction needed
             logger.warning("Not user message found! Returning empty")
-            # todo fix: how to handle requests, if last messages is from bot??
             return []
 
         response: TrackResponse = self.generate_response(chat, user_message)
@@ -89,9 +89,13 @@ class SimpleTrack(TrackI):
             state = response.state
             messages = [response]
         elif isinstance(response, list):
-            # todo fix: validate that it's AIMessage, not MiscMessage
-            state = response[-1].state
-            messages = response
+            if response:
+                last_msg = response[-1]
+                state = last_msg.state if last_msg.is_ai else ""
+                messages = response
+            else:
+                state = ""
+                messages = []
         else:
             logger.error(f"Bad response type: {type(response)}: {response}")
             state = ""

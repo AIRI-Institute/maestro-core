@@ -1,6 +1,6 @@
 [project]
 name = "mmar-utils"
-version = "1.1.5"
+version = "1.1.6"
 description = "Utilities for multi-modal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"

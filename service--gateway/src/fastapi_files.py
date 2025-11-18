@@ -1,4 +1,5 @@
 import io
+from urllib.parse import quote
 
 import magic
 from fastapi import UploadFile
@@ -15,8 +16,14 @@ FileData = tuple[FileName, bytes]
 def make_streaming_response(f_data: FileData) -> StreamingResponse:
     f_name, f_bytes = f_data
     file_like = io.BytesIO(f_bytes)
+    try:
+        ascii_filename = f_name.encode("ascii").decode("ascii")
+        content_disposition = f'attachment; filename="{ascii_filename}"'
+    except UnicodeEncodeError:
+        encoded_filename = quote(f_name)
+        content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
     headers = {
-        "Content-Disposition": f"attachment; filename={f_name}",
+        "Content-Disposition": content_disposition,
         "Content-Length": str(len(f_bytes)),
     }
     return StreamingResponse(
@@ -26,11 +33,7 @@ def make_streaming_response(f_data: FileData) -> StreamingResponse:
     )
 
 
-# Игнорируем PEP 484, но иначе некорректно формируется doc swagger. Да, режет глаза и делать так нельзя
-async def load_file(config: Config, file: UploadFile | None = None) -> FileData | None:
-    if not file:
-        return None
-    # todo fix: are we really needing validation if resource name passed?
+async def load_file(config: Config, file: UploadFile) -> FileData:
     file_name = file.filename
     if not file_name:
         extension = await validate_allowed_type(config, file)

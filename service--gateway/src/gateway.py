@@ -138,7 +138,7 @@ class Gateway:
         response_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
         if not response_messages:
             logger.warning("Not found messages to response...")
-        # todo fix: support long polling in the future
+        # todo: support long polling in the future
         res = ChatResponse(
             chat_id=chat_id,
             response_messages=response_messages,

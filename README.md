@@ -18,19 +18,20 @@ make run-dummy records='dummy=hello dummy=test dummy=exit'
 ## Setup LLM
 LLM integrations supported. (Right now only `OpenRouter` or `Gigachat`)
 
-If you have keys, run wizard to setup `entrypoints.json`: environment for LLM:
-```sh
-make run-wizard
-```
-Then follow Maestro CLI steps.
-
-When done, copy `entrypoints.json` to `./data` and restart llm-accessor:
-```sh
-make update-entrypoints restart-llm-accessor
-```
+If you have keys, you need to setup `entrypoints.json`, configuration for LLM.
+### Variant 1
+- copy `entrypoints.json.example` to `entrypoints.json`
+- edit `entrypoints.json` :: fill `???` placeholders with your keys, fix `model_id` if you need, remove excess entrypoints
+- copy `entrypoints.json` to `./data`, run `make update-entrypoints`
+- restart llm-accessor, run `make restart-llm-accessor`
+### Variant 2
+- use wizard to setup `entrypoints.json`: run `make run-wizard`
+- follow Maestro CLI steps.
+- copy `entrypoints.json` to `./data`, run `make update-entrypoints`
+- restart llm-accessor, run `make restart-llm-accessor`
 ## Run LLM example
 ```sh
-make run-chatbot 
+make run-chatbot records='start="Какая ты языковая модель?"'
 ```
 Questions forwarded to your configured LLM.
 

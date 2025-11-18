@@ -1,5 +1,11 @@
-entrypoints.json
-.env
-uv.lock
-.venv/
 data/
+entrypoints.json
+uv.lock
+venv
+.venv
+test.py
+.pytest_cache
+*__pycache__
+.env
+db_test.py
+uv.lock

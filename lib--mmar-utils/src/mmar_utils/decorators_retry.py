@@ -82,7 +82,7 @@ def retry_on_cond(
         def wrapper(*args: Any, **kwargs: Any) -> T | None:
             total_attempts = max(1, attempts)
             for attempt in range(total_attempts):
-                if title is not None:
+                if title is not None and attempt != 0:
                     logger.debug(f"{title}, attempt: {attempt + 1}")
                 result = func(*args, **kwargs)
                 if condition(result):

@@ -14,7 +14,7 @@ def upload_resource_maybe(file_storage: FileStorage, f_data: FileData | None) ->
         return None
     fname, content = f_data
     resource_id: ResourceId = file_storage.upload(content, fname=fname)
-    # todo fix: why? we don't sure that final resource name is `fname`?
+    # todo: why? we don't sure that final resource name is `fname`?
     resource_name = file_storage.get_fname(resource_id) or fname
     return resource_name, resource_id
 

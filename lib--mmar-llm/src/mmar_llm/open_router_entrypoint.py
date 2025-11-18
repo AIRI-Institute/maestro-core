@@ -1,12 +1,16 @@
 import base64
+import logging
 from time import sleep
 
 from loguru import logger
 from openai import DefaultHttpxClient, OpenAI
-from openai.types.chat import ChatCompletionMessageParam
 
-from .base_chat import AbstractEntryPoint
-from .io_sugar import OnError, make_on_exception
+from mmar_llm.base_chat import AbstractEntryPoint
+from mmar_llm.io_sugar import OnError, make_on_exception
+from mmar_llm.models import EntrypointPayload
+
+logger = logging.getLogger(__name__)
+
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -20,7 +24,7 @@ class OpenRouterEntryPoint(AbstractEntryPoint):
         emb_dim: int = 1024,
         providers: list[str] = [],
         warmup: bool = False,
-        on_error: OnError = "ignore",
+        on_error: OnError = "warn",
         verify: bool = True,
     ) -> None:
         self.base_url = base_url
@@ -61,22 +65,32 @@ class OpenRouterEntryPoint(AbstractEntryPoint):
                 system_prompt="", user_prompt=sentences, image_encoded=encoded_image, mimetype=mimetype
             )
             return (
-                self._model.chat.completions.create(
-                    model=self.model_id,
-                    messages=payload,
-                    extra_body=self.extra_body,
-                )
+                self._model.chat.completions.create(model=self.model_id, messages=payload, extra_body=self.extra_body)
                 .choices[0]
                 .message.content
             ) or ""
         return self._ERROR_MESSAGE
 
-    def get_response_by_payload(self, payload: list[ChatCompletionMessageParam], **kwargs) -> str:
+    def get_response_by_payload(self, payload: EntrypointPayload, **kwargs) -> str:
         """payload: [{"role": "system", "content": system}, {"role": "user", "content": replica}]"""
+        if isinstance(payload, dict):
+            if "messages" not in payload:
+                logger.warning(f"Bad payload: {payload}")
+                return self._ERROR_MESSAGE
+            if len(payload) > 1:
+                bad_keys = payload.keys() - {"messages"}
+                logger.warning(f"Unexpected keys: {bad_keys}")
+            messages = payload.get("messages")
+        elif isinstance(payload, list):
+            messages = payload
+        else:
+            logger.warning(f"Bad payload: {payload}")
+            return self._ERROR_MESSAGE
+
         with self.on_exception():
             return (
                 self._model.chat.completions.create(
-                    model=self.model_id, messages=payload, extra_body=self.extra_body, **kwargs
+                    model=self.model_id, messages=messages, extra_body=self.extra_body, **kwargs
                 )
                 .choices[0]
                 .message.content
@@ -105,7 +119,7 @@ class OpenRouterEntryPoint(AbstractEntryPoint):
 
     def __repr__(self):
         class_name = type(self).__name__
-        url_info = f', url={self.base_url}' if self.base_url != OPENROUTER_BASE_URL else ''
+        url_info = f", url={self.base_url}" if self.base_url != OPENROUTER_BASE_URL else ""
         return f"{class_name}(model_id={self.model_id}{url_info})"
 
     def __str__(self):

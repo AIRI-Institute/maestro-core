@@ -34,12 +34,12 @@ class ChatStorage:
     def _load_chat_info_by_chat_id(self, chat_id: str) -> DBChatInfoItem | None:
         err, chat = self.load_chat_by_chat_id(chat_id)
         if err:
-            logger.error(err)
+            logger.error(f"Failed to load chat with chat_id={chat_id}: {err}")
             return None
 
         first_message, first_message_date = None, None
         if len(messages := chat.messages) > 2:
-            first_message = messages[2].body
+            first_message = messages[2].text
             first_message_date = messages[2].date_time
         chat_info = DBChatInfoItem(
             chat_id=chat_id,

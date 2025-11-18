@@ -14,7 +14,6 @@ from mmar_mapi.api import (
     EntrypointsConfig,
     LLMAccessorAPI,
     LLMCallProps,
-    Message,
     Payload,
     Request,
     ResourceId,
@@ -34,33 +33,6 @@ IMAGE_MIME_TYPES = {
     "png": "image/png",
 }
 NA = "NOT AVAILABLE"
-
-
-def _parse_messages(request: Request) -> list[Message]:
-    if isinstance(request, str):
-        return [Message(role="user", content=request)]
-    elif isinstance(request, list) and all(isinstance(msg, Message) for msg in request):
-        return request
-    elif isinstance(request, Payload):
-        return request.messages
-    else:
-        raise ValueError(f"Bad request type {type(request)}: {request}")
-
-
-def _parse_resource_id(request: Request) -> str | None:
-    if isinstance(request, str):
-        return None
-    elif isinstance(request, list) and all(isinstance(msg, Message) for msg in request):
-        return None
-    elif isinstance(request, Payload):
-        attachments = request.attachments
-        if not attachments:
-            return None
-        # todo log message that many attachments passed
-        resource_id = attachments[0][0]
-        return resource_id
-    else:
-        raise ValueError(f"Bad request type {type(request)}: {request}")
 
 
 def _parse_prompt_for_image(payload: Payload) -> str:
@@ -92,7 +64,6 @@ class LLMAccessor(LLMAccessorAPI):
             logger.info(f"Entrypoints: {entrypoints_pretty}")
 
         self.default_ek = config.llm.default_entrypoint_key
-        # todo fix
         self.default_image_ek = config.llm.default_image_entrypoint_key
         self.default_file_ek = config.llm.default_file_entrypoint_key
         self.file_storage = FileStorage(config.files_dir)
@@ -132,7 +103,7 @@ class LLMAccessor(LLMAccessorAPI):
         sent: str = _parse_prompt_for_image(payload)
         ep = self._get_entrypoint_or_default(ek, self.default_image_ek, capability="image")
         if ep is None:
-            logger.error(f"Failed to get image entrypoint for keys=({ek}, {self.default_image_ek}")
+            logger.error(f"Failed to get image entrypoint for keys=('{ek}', '{self.default_image_ek}')")
             return ""
 
         file: bytes = self.file_storage.download(resource_id)
@@ -166,10 +137,12 @@ class LLMAccessor(LLMAccessorAPI):
     ) -> ResponseExt:
         retrier = retry_on_cond(title=f"#get_response(entrypoint_key={props.entrypoint_key})", attempts=props.attempts)
         get_response_by_payload = retrier(entrypoint.get_response_by_payload)
-        # todo fix
-        payload = payload.model_dump()['messages']
-        logger.debug(f"Payload: {payload}")
-        text = get_response_by_payload(payload) or ""
+        payload_dict = {
+            "messages": payload.model_dump()["messages"],
+        }
+        if payload.attachments:
+            payload_dict["attachments"] = payload.attachments
+        text = get_response_by_payload(payload_dict) or ""
         return ResponseExt(text=text)
 
     # API
@@ -188,16 +161,15 @@ class LLMAccessor(LLMAccessorAPI):
 
     def get_response_ext(self, *, request: Request, props: LLMCallProps = LCP) -> ResponseExt:
         start = time.time()
-        response = self._get_response_ext(request, props)
+        payload: Payload = Payload.parse(request)
+        response = self._get_response_ext(payload, props)
         elapsed = time.time() - start
-        logger.info(f"Ready in {elapsed:.2f} seconds")
+        logger.info(f"Ready in {elapsed:.2f} seconds ( {payload.show_pretty(detailed=True)} )")
         return response
 
-    def _get_response_ext(self, request: Request, props: LLMCallProps) -> ResponseExt:
+    def _get_response_ext(self, payload: Payload, props: LLMCallProps) -> ResponseExt:
         ek = props.entrypoint_key
-        messages: list[Message] = _parse_messages(request)
-        payload = Payload(messages=messages)
-        resource_id: str | None = _parse_resource_id(request)
+        resource_id: str | None = payload.get_resource_id()
 
         if not resource_id:
             entrypoint_b: AbstractEntryPoint | None = self._get_entrypoint_or_default(ek, self.default_ek)

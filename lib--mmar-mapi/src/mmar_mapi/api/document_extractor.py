@@ -52,6 +52,8 @@ class DocExtractionSpec(BaseModel, frozen=True):
     def with_page_range(self, page_range: PageRange): return self._update(page_range=page_range)
     # fmt: on
 
+DOC_SPEC_DEFAULT = DocExtractionSpec()
+
 
 class ExtractedImage(BaseModel):
     page: int
@@ -90,6 +92,6 @@ class DocExtractionOutput(BaseModel):
 
 
 class DocumentExtractorAPI:
-    def extract(self, *, resource_id: ResourceId, spec: DocExtractionSpec) -> ResourceId | None:
+    def extract(self, *, resource_id: ResourceId, spec: DocExtractionSpec = DOC_SPEC_DEFAULT) -> ResourceId | None:
         """returns file with DocExtractionOutput"""
         raise NotImplementedError

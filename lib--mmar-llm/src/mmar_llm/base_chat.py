@@ -8,6 +8,7 @@ from typing import Any
 import tiktoken
 from httpx import NetworkError
 from openai.types.chat import ChatCompletionMessageParam
+from mmar_llm.models import EntrypointPayload
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class AbstractEntryPoint(ABC):
         pass
 
     @abstractmethod
-    def get_response_by_payload(self, payload: list[ChatCompletionMessageParam]) -> str:
+    def get_response_by_payload(self, payload: EntrypointPayload) -> str:
         pass
 
     @abstractmethod
@@ -59,7 +60,9 @@ class AbstractEntryPoint(ABC):
             responses = [future.result() for future in futures]
         return responses
 
-    def get_responses_by_payload(self, payloads: list[list[ChatCompletionMessageParam]], max_workers: int = 2) -> list[str]:
+    def get_responses_by_payload(
+        self, payloads: list[list[ChatCompletionMessageParam]], max_workers: int = 2
+    ) -> list[str]:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [executor.submit(self.get_response_by_payload, payload) for payload in payloads]
             responses = [future.result() for future in futures]

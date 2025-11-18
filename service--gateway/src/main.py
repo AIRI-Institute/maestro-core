@@ -18,7 +18,7 @@ async def trace_id_getter(request: Request) -> str | None:
         if headers.get("content-type") == "application/json":
             pass
             # body = json.loads((await request.body()).decode())
-            # todo fix: try to find chat_id, if ok, use it as trace_id
+            # todo: try to find chat_id inside request, if ok, use it as trace_id
         if client_id := headers.get("client-id"):
             return str(client_id)
     except Exception as ex:
@@ -48,9 +48,8 @@ def main() -> None:
         host=config.fastapi.hostname,
         port=config.fastapi.port,
         workers=config.fastapi.max_workers,
-        # todo fix: right now critical to eliminate non-colored logs
+        # critical to eliminate non-colored logs: there is already logging middleware for logging
         log_level="critical",
-        # log_level=config.fastapi.log_level,
     )
     server = uvicorn.Server(server_config)
     host_port = f"{server_config.host}:{server_config.port}"

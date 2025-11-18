@@ -13,6 +13,7 @@ from mmar_mapi.api.document_extractor import (
     ForceOCR,
     OutputType,
     PageRange,
+    DOC_SPEC_DEFAULT,
 )
 from mmar_mapi.api.llm_accessor import (
     LCP,
@@ -57,6 +58,8 @@ __imported__ = [
     ExtractedPageImage,
     DocExtractionOutput,
     DocumentExtractorAPI,
+    DOC_SPEC_DEFAULT,
+    # entrypoints
     EntrypointInfo,
     EntrypointsConfig,
 ]

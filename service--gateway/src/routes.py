@@ -23,8 +23,7 @@ from src.models import (
     UploadManyRequest,
     UploadResponse,
 )
-from src.utils_funcs import partial_hide
-from src.validators import validate_client
+from src.validators import validate_client, validate_no_underscores
 
 D = Depends
 ClientIdHeader = Annotated[Annotated[str, D(validate_client)], Header()]
@@ -38,17 +37,17 @@ async def get_chat_previews(client_id: ClientIdHeader, user_id: str, deps: Deps 
 
 @router.post("/api/v3/chats")
 async def create(client_id: ClientIdHeader, context: Context, deps: Deps = D()) -> CreateResponse:
-    # todo fix: is it needed to specify client_id here?
     if context.client_id == "":
         context.client_id = client_id
     elif client_id != context.client_id:
         err = f"client-id from context ({context.client_id}) and header ({client_id}) are not aligned"
         raise MalformedException(err)
-    # todo fix: ensure that session_id is okeish
-    # todo fix: validate that not `_` inside
-    context_fix = Context(**context.model_dump())
 
-    response: CreateResponse = await deps.gateway.create_chat(context=context_fix)
+    validate_no_underscores(context, "client_id")
+    validate_no_underscores(context, "user_id")
+    validate_no_underscores(context, "session_id")
+
+    response: CreateResponse = await deps.gateway.create_chat(context=context)
     return response
 
 
@@ -56,8 +55,8 @@ async def create(client_id: ClientIdHeader, context: Context, deps: Deps = D()) 
 async def get_chat(client_id: ClientIdHeader, chat_id: str, deps: Deps = D()) -> HistoryResponse:
     err, chat = await deps.gateway.get_chat(chat_id=chat_id)
     if err:
-        # todo fix: why NOT_FOUND? maybe other error?
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=err)
+        logger.error(f"Failed to delete chat_id={chat_id}: {err}")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
     messages = [msg for msg in chat.messages if msg.is_human or msg.is_ai]
     return HistoryResponse(chat_id=chat_id, messages=messages)
 
@@ -77,14 +76,14 @@ async def send(client_id: ClientIdHeader, chat_id: str, request: ChatRequestMess
 async def delete_chat(client_id: ClientIdHeader, chat_id: str, deps: Deps = D()) -> None:
     err = await deps.gateway.delete_chat(chat_id)
     if err:
-        # todo fix: why NOT_FOUND? maybe other error?
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=err)
+        logger.error(f"Failed to delete chat_id={chat_id}: {err}")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
     return None
 
 
 @router.post("/api/v2/files/upload")
 async def upload(client_id: ClientIdHeader, file: UploadFile | None = None, deps: Deps = D()) -> UploadResponse:
-    f_data: FileData | None = await load_file(deps.config, file)
+    f_data: FileData | None = file and await load_file(deps.config, file)
     if not f_data:
         raise FileNotFoundException()
     f_name, f_content = f_data

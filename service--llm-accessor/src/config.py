@@ -3,7 +3,7 @@ import os
 from mmar_llm import EntrypointsConfig
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.legacy_load_pydantic import LoadPydantic
+from src.validators_load_pydantic_model import LoadPydanticModel
 
 
 class Config(BaseSettings):
@@ -12,7 +12,7 @@ class Config(BaseSettings):
     files_dir: str = "/mnt/data/maestro/files"
 
     entrypoints_path: str
-    llm: LoadPydantic[EntrypointsConfig, "entrypoints_path"] = None
+    llm: LoadPydanticModel[EntrypointsConfig, "entrypoints_path"] = None
 
     warmup_entrypoints: bool = False
 

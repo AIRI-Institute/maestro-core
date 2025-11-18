@@ -1,0 +1,9 @@
+src/data/blacklist.json filter=lfs diff=lfs merge=lfs -text
+src/data/childlist.json filter=lfs diff=lfs merge=lfs -text
+src/data/classifier.jbl filter=lfs diff=lfs merge=lfs -text
+src/data/pca.jbl filter=lfs diff=lfs merge=lfs -text
+src/data/ultimate_whitelist.json filter=lfs diff=lfs merge=lfs -text
+src/data/whitelist.json filter=lfs diff=lfs merge=lfs -text
+src/data/receiptlist.json filter=lfs diff=lfs merge=lfs -text
+tests_data/predicts.json filter=lfs diff=lfs merge=lfs -text
+tests_data/test_data.json filter=lfs diff=lfs merge=lfs -text

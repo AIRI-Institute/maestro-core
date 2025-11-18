@@ -75,7 +75,6 @@ class FusionBrainEntrypoint(AbstractEntryPoint):
         }
 
         data = {"pipeline_id": (None, self.pipeline_id), "params": (None, json.dumps(params), "application/json")}
-        t_start = time.time()
         response = requests.post(f"{self.base_url}/key/api/v1/pipeline/run", headers=self.auth_headers, files=data)
         if response.status_code >= 400:
             raise RuntimeError(
@@ -85,7 +84,6 @@ class FusionBrainEntrypoint(AbstractEntryPoint):
         return response.json()["uuid"]
 
     def _check_generation(self, uuid: str) -> dict:
-        t_start = time.time()
         response = requests.get(f"{self.base_url}/key/api/v1/pipeline/status/{uuid}", headers=self.auth_headers)
         return response.json()
 

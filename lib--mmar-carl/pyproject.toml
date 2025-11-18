@@ -1,0 +1,71 @@
+[project]
+name = "mmar-carl"
+# dynamic version is not supported yet on uv_build
+version = "0.0.10"
+description = "Collaborative Agent Reasoning Library"
+authors = [{name = "glazkov", email = "glazkov@airi.net"}, {name = "shaposhnikov", email = "shaposhnikov@airi.net"}, {name = "tagin", email = "tagin@airi.net"}]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = []
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Documentation",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = [
+    "faiss-cpu>=1.7.0",
+    "fastembed>=0.7.3",
+    "mmar-llm~=1.0.6",
+    "mmar-mapi~=1.2.4",
+    "mmar-ptag>=1.0.12",
+    "numpy>=1.21.0",
+    "pydantic>=2.11.7",
+]
+
+[dependency-groups]
+ci = [
+    "ruff>=0.4",
+    "pytest>=8.2",
+    "pytest-asyncio>=1.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.14,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "mmar_carl"
+source-exclude = [".ruff_cache"]
+
+[tool.uv]
+default-groups = ["ci"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[pytest]
+python_files = [ "test_*.py" ]
+testpaths = [ "tests" ]
+
+# action:message_regex:warning_class:module_regex:line
+filterwarnings = [ "error" ]
+
+[mypy]
+ignore_missing_imports = true
+exclude = "tests/fixtures/"
+warn_unused_ignores = true
+show_error_codes = true

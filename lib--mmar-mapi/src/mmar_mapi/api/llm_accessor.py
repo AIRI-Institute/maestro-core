@@ -9,6 +9,7 @@ class EntrypointInfo(BaseModel):
     entrypoint_key: str
     caption: str
 
+
 class EntrypointsConfig(BaseModel):
     entrypoints: list[EntrypointInfo]
     default_entrypoint_key: str
@@ -33,6 +34,9 @@ class Message(BaseModel, frozen=True):
     def create(message: ChatMessage) -> "Message":
         return _create_message(message=message)
 
+    def get_content(self):
+        return self.content
+
 
 def _create_message(message: ChatMessage) -> Message | None:
     role = "assistant" if message.is_ai else "user" if message.is_human else None
@@ -50,13 +54,31 @@ class Payload(Messages, frozen=True):
         return self.model_copy(update=dict(attachments=attachments))
 
     def __repr__(self):
-        parts = [f"messages: {len(self.messages)}", self.attachments and "has attachments"]
+        return self.show_pretty()
+
+    def show_pretty(self, detailed: bool=False):
+        total_size = sum(len(msg.content) for msg in self.messages)
+        parts = [
+            f"messages: {len(self.messages)}",
+            f"total size: {total_size}" if detailed else None,
+            self.attachments and "has attachments",
+        ]
         payload_pretty = ", ".join(filter(None, parts))
-        return f"Payload({payload_pretty})"
+        return f"Payload({payload_pretty})"        
 
     @staticmethod
     def create(user_text: str, resource_id: ResourceId = "") -> "Payload":
         return _create_payload(user_text=user_text, resource_id=resource_id)
+
+    @staticmethod
+    def parse(request: "Request") -> "Payload":
+        return _parse_payload(request)
+
+    def get_resource_id(self) -> str | None:
+        if not self.attachments:
+            return None
+        resource_id = self.attachments[0][0]
+        return resource_id
 
 
 def _create_payload(user_text: str, resource_id: ResourceId = ""):
@@ -74,6 +96,17 @@ class ResponseExt(BaseModel):
 
 RESPONSE_EMPTY = ResponseExt(text="")
 Request = str | Messages | Payload
+
+
+def _parse_payload(request: Request) -> Payload:
+    if isinstance(request, str):
+        return Payload(messages=[Message(role="user", content=request)])
+    elif isinstance(request, list) and all(isinstance(msg, Message) for msg in request):
+        return Payload(messages=request)
+    elif isinstance(request, Payload):
+        return request
+    else:
+        raise ValueError(f"Bad request type {type(request)}: {request}")
 
 
 class LLMAccessorAPI:
