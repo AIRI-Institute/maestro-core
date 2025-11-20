@@ -17,12 +17,22 @@ from .utils_texts import (
     chunk_respect_semantic,
     extract_text_inside,
     pretty_line,
+    pretty_prefix,
     remove_prefix_if_present,
     remove_suffix_if_present,
     rindex_safe,
 )
 from .utils_texts_postprocessing import clean_and_fix_text, postprocess_text
-from .validators import ExistingFile, ExistingPath, Message, Prompt, PromptBaseContext, SecretStrNotEmpty, StrNotEmpty, validate_no_underscores
+from .validators import (
+    ExistingFile,
+    ExistingPath,
+    Message,
+    Prompt,
+    PromptBaseContext,
+    SecretStrNotEmpty,
+    StrNotEmpty,
+    validate_no_underscores,
+)
 
 __all__ = [
     "Either",
@@ -44,6 +54,7 @@ __all__ = [
     "on_error_log_and_none",
     "parallel_map",
     "pretty_line",
+    "pretty_prefix",
     "read_json",
     "remove_prefix_if_present",
     "remove_suffix_if_present",

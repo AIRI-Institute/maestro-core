@@ -1,20 +1,28 @@
 from concurrent import futures
+from types import SimpleNamespace
 from typing import Any, Callable, Protocol, Type
 
 import grpc
 from loguru import logger
 
-from .logging_configuration import init_logger
+from .logging_configuration import LogLevelEnum, init_logger
 from .ptag_framework import ptag_attach
 
 
+class ConfigLogger(Protocol):
+    level: LogLevelEnum
+
+
+CONFIG_LOGGER_DEFAULT = SimpleNamespace(level=LogLevelEnum.DEBUG)
+
+
 class ConfigServer(Protocol):
-    max_workers: int
     port: int
-    logger: Any
+    max_workers: int
+    logger: ConfigLogger | None
 
 
-def grpc_server(max_workers: int, port: int) -> grpc.Server:
+def grpc_server(*, port: int, max_workers: int) -> grpc.Server:
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
     server.add_insecure_port(f"[::]:{port}")
     return server
@@ -39,10 +47,12 @@ def deploy_server(
             service = service()
 
     # logging setup and server start
-    init_logger(config_server.logger.level)
-    logger.debug(f"Config: {config}")
+    level = getattr(config_server, "logger", CONFIG_LOGGER_DEFAULT).level
+    init_logger(level)
+    logger.debug(f"Config server: {repr(config_server)}")
+    logger.debug(f"Config: {repr(config)}")
 
-    server = grpc_server(max_workers=config_server.max_workers, port=config_server.port)
+    server = grpc_server(port=config_server.port, max_workers=config_server.max_workers)
     ptag_attach(server, service)
     server.start()
     logger.info(f"Server started, listening on {config_server.port}")

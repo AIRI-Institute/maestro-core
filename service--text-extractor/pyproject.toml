@@ -11,7 +11,7 @@ dependencies = [
     "loguru~=0.7.2",
 
     "mmar-mapi~=1.2.5",
-    "mmar-ptag~=1.0.12",
+    "mmar-ptag~=1.0.13",
     "mmar-utils~=1.1.2",
 
     "pytesseract==0.3.13",

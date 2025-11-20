@@ -99,6 +99,7 @@ class MaestroClient(MaestroClientI):
     async def upload_resource(self, file_data: FileData, client_id: str) -> str | None:
         file_name, file_bytes = file_data
         resourse_id: str = await self.get_file_storage(client_id).upload_async(file_bytes, file_name)
+        logger.debug(f"Uploaded resource with name '{file_name}' to '{resourse_id}'")
         return resourse_id
 
     async def download_resource(self, resource_id: str, client_id: str) -> bytes:

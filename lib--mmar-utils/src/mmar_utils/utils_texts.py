@@ -1,10 +1,15 @@
-def pretty_line(text: str, cut_count: int = 100) -> str:
-    if len(text) > 100:
+def pretty_prefix(text: str, cut_count: int = 100) -> str:
+    if len(text) > cut_count:
         text_cut = text[:cut_count]
         size = len(text)
         text_pretty = f"{text_cut}..(total {size} characters)"
     else:
         text_pretty = text
+    return text_pretty
+
+
+def pretty_line(text: str, cut_count: int = 100) -> str:
+    text_pretty = pretty_prefix(text, cut_count)
     text_pretty = text_pretty.replace("\n", "\\n")
     return text_pretty
 

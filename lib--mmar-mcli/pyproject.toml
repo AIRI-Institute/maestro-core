@@ -1,7 +1,7 @@
 [project]
 name = "mmar-mcli"
 # dynamic version is not supported yet on uv_build
-version = "1.0.7"
+version = "1.0.8"
 description = "Client to Maestro"
 authors = [{name = "tagin", email = "tagin@airi.net"}]
 license = "MIT"

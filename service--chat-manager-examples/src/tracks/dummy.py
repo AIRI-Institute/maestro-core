@@ -14,7 +14,7 @@ class Dummy(SimpleTrack):
     def generate_response(self, chat: Chat, user_message: HumanMessage) -> TrackResponse:
         text = user_message.text
         if text.lower() == "exit":
-            return AIMessage(content="Exit!", state="final")
+            return "final", "Bye!"
         resource_id = user_message.resource_id
 
         if text:
@@ -32,5 +32,4 @@ class Dummy(SimpleTrack):
 
         response_text = ", ".join([response_text_info, response_resource_info])
         content = make_content(text=response_text, resource=response_resource)
-        msg = AIMessage(content=content, state="dummy")
-        return msg
+        return AIMessage(content=content, state="dummy")

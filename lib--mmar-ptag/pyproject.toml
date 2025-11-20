@@ -1,7 +1,7 @@
 [project]
 name = "mmar-ptag"
 # dynamic version is not supported yet on uv_build
-version = "1.0.12"
+version = "1.0.13"
 description = "pydantically-type-adapted-grpc framework for multimodal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"

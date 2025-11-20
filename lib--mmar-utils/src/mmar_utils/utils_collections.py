@@ -19,6 +19,7 @@ def edit_object(obj: Any, editor: Callable[[T], T | None]):
 def flatten(xss: Iterable[Iterable[T]]) -> list[T]:
     return [x for xs in xss for x in xs]
 
+
 def take_exactly_one(elements: list[T]) -> T:
     if len(elements) != 1:
         raise ValueError(f"Exactly one element expected, found {len(elements)}: {elements}")

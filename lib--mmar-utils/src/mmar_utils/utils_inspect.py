@@ -79,6 +79,7 @@ class FuncMetadata:
         else:
             return f"def {self.name}({self_maybe}*) -> {pretty_res}: ..."
 
+
 Methods = dict[str, Callable]
 Metadatas = dict[str, FuncMetadata]
 
@@ -196,7 +197,7 @@ def validate_only_kw(args_metadata):
         if am.is_kw:
             continue
         am_pretty = prettify_args_metadata(args_metadata)
-        signature = f"(self, *, {am_pretty})" if am_pretty else '(self)'
+        signature = f"(self, *, {am_pretty})" if am_pretty else "(self)"
         param = prettify_arg_metadata(am)
         msg_parts = [
             f"Keyword-Only parameters expected, found positional: `{param}`.",
@@ -233,7 +234,7 @@ def extract_func_metadata(func: Callable, only_kw: bool = True) -> FuncMetadata 
 
 
 def extract_method_metadata(method: Callable) -> FuncMetadata | None:
-    func = getattr(method, '__func__', None)
+    func = getattr(method, "__func__", None)
     if not func:
         return None
     return extract_func_metadata(func)
@@ -243,7 +244,7 @@ def extract_interface_metadatas(interface) -> Metadatas:
     metadatas = {}
     for name, func in inspect.getmembers(interface, predicate=inspect.isfunction):
         func_metadata = extract_func_metadata(func)
-        if name.startswith('_'):
+        if name.startswith("_"):
             continue
         if func_metadata is None:
             raise ValueError(f"Failed to parse interface func: {func.__name__}")
@@ -251,7 +252,7 @@ def extract_interface_metadatas(interface) -> Metadatas:
     return metadatas
 
 
-def _extract_obj_methods_metadatas(obj, skip_inherited: bool=True) -> tuple[Methods, Metadatas]:
+def _extract_obj_methods_metadatas(obj, skip_inherited: bool = True) -> tuple[Methods, Metadatas]:
     methods, metadatas = {}, {}
     for name, method in inspect.getmembers(obj, predicate=inspect.ismethod):
         if skip_inherited and name not in obj.__class__.__dict__:
@@ -290,8 +291,8 @@ def extract_and_validate_obj_methods_metadatas(obj):
         sz = max(len(s_pref), len(i_pref))
         s_pref = s_pref.ljust(sz)
         i_pref = i_pref.ljust(sz)
-        resolutions = {fn: (' # OK' if metadatas.get(fn) == metadatas_i.get(fn) else '') for fn in metadatas.keys()}
-        metadatas_pretty = [f'{md.as_pretty_str()}{resolutions[fn]}' for fn, md in metadatas.items()]
+        resolutions = {fn: (" # OK" if metadatas.get(fn) == metadatas_i.get(fn) else "") for fn in metadatas.keys()}
+        metadatas_pretty = [f"{md.as_pretty_str()}{resolutions[fn]}" for fn, md in metadatas.items()]
         metadatas_i_pretty = [mdi.as_pretty_str() for mdi in metadatas_i.values()]
 
         msg_lines = [

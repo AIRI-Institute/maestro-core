@@ -84,7 +84,9 @@ class Prompt:
 
         return Annotated[str, AfterValidator(validate_keys(*keys_tuple))]
 
+
 PromptBaseContext = Prompt["base_context"]
+
 
 def validate_no_underscores(text: str) -> str:
     if "_" in text:

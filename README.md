@@ -36,4 +36,7 @@ If you have keys, you need to setup `entrypoints.json`, configuration for LLM.
 make run-chatbot records='start="Какая ты языковая модель?"'
 ```
 Questions forwarded to your configured LLM.
-
+## Run Describer example
+```sh
+make run-describer
+```

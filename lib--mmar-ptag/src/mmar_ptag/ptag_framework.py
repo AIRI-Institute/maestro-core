@@ -1,11 +1,12 @@
 """PTAG ~ 'Pydantic Type Adapter GRPC'"""
 
 import types
+from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Generic, TypeVar, cast
 
 from google.protobuf.message import Message
-from grpc import ServicerContext, StatusCode, insecure_channel
+from grpc import Channel, RpcError, ServicerContext, StatusCode, insecure_channel
 from loguru import logger
 from mmar_utils.utils_inspect import (
     FuncMetadata,
@@ -109,22 +110,61 @@ def make_proxy(grpc_stub, func_metadata: FuncMetadata):
     return proxy
 
 
+ChannelStubFunc = Callable[[str], tuple[Channel, PTAGServiceStub]]
+
+
+def _create_insecure_channel_stub(address):
+    channel = insecure_channel(address)
+    stub = PTAGServiceStub(channel)
+    return channel, stub
+
+
 class ClientProxy(Generic[T]):
-    def __init__(self, service_interface: type[T], grpc_stub, address):
+    def __init__(self, service_interface: type[T], address, channel_stub_func: ChannelStubFunc | None = None):
+        self.channel_stub_func = channel_stub_func or _create_insecure_channel_stub
         if not isinstance(service_interface, type):
             si_name = type(service_interface).__name__
             raise ValueError(
                 f"Expected type, found: {type(service_interface)}. Probably you passed ptag_client({si_name}(), ...) instead of ptag_client({si_name}, ...)"
             )
         self.service_interface = service_interface
-        self.address = address
+
         metadatas = extract_interface_metadatas(service_interface)
         check_valid_trace_id_in_metadatas(metadatas)
+        self.metadatas = metadatas
 
-        for mm in metadatas.values():
-            proxy = make_proxy(grpc_stub, mm)
-            bound_func = types.MethodType(proxy, self)
+        self.address = address
+        self._channel, self._stub = self.channel_stub_func(self.address)
+        self._set_proxy_methods()
+
+    def _set_proxy_methods(self):
+        for mm in self.metadatas.values():
+            proxy = make_proxy(self._stub, mm)
+            proxy_wrapped = self._wrap_method_with_reconnect(proxy)
+            bound_func = types.MethodType(proxy_wrapped, self)
             setattr(self, mm.name, bound_func)
+
+    def _reconnect(self):
+        try:
+            self._channel.close()
+        except Exception:
+            pass
+        self._channel, self._stub = self.channel_stub_func(self.address)
+        self._set_proxy_methods()
+        logger.info(f"Reconnected on {self.address}...")
+
+    def _wrap_method_with_reconnect(self, raw_method):
+        def wrapped(proxy_self, *args, **kwargs):
+            try:
+                return raw_method(proxy_self, *args, **kwargs)
+            except RpcError as e:
+                if e.code() == StatusCode.UNAVAILABLE:
+                    logger.error(f"ERROR: [{e.details()}], reconnecting...")
+                    proxy_self._reconnect()
+                    return raw_method(proxy_self, *args, **kwargs)
+                raise
+
+        return wrapped
 
     def __str__(self):
         return f"ptag-client('{get_full_name(self.service_interface)}' -> '{self.address}')"
@@ -162,7 +202,5 @@ def ptag_client(service_interface: type[T], address: str) -> T:
     Create a dynamic client for the given interface at the provided gRPC address.
     """
     address = _try_fix_address(address)
-    channel = insecure_channel(address)
-    stub = PTAGServiceStub(channel)
-    proxy = ClientProxy(service_interface, stub, address)
+    proxy = ClientProxy(service_interface, address)
     return cast(T, proxy)

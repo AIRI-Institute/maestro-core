@@ -42,19 +42,27 @@ class Gateway:
         tracks = self._chat_manager.get_tracks(language_code=language_code, client_id=client_id)
         return TracksResponse(tracks=tracks)
 
+    def _default_entrypoints_response(self) -> EntrypointsResponse:
+        ei = EntrypointInfo.model_validate(self.default_entrypoint)
+        es_response = EntrypointsResponse(default_entrypoint_key=ei.entrypoint_key, entrypoints=[ei])
+        return es_response
+
     @make_async
     def get_entrypoints(self, client_id: str) -> EntrypointsResponse:
         try:
             context = Context(client_id="Gateway", track_id="SystemEntrypoints")
             chat = Chat(context=context, messages=[HumanMessage(content="/start")])
             ri = self._chat_manager.get_response(chat=chat)[0]
+            ri_content = ri.content
+            if not isinstance(ri_content, dict) or "result" not in ri_content:
+                logger.warning("Switching entrypoints is not supported yet")
+                return self._default_entrypoints_response()
             entrypoints_json = ri.content["result"]
             es_response = EntrypointsResponse.model_validate_json(entrypoints_json)
+            return es_response
         except Exception:
             logger.exception("Failed to load entrypoints, fallback to default")
-            ei = EntrypointInfo.model_validate(self.default_entrypoint)
-            es_response = EntrypointsResponse(default_entrypoint_key=ei.entrypoint_key, entrypoints=[ei])
-        return es_response
+            return self._default_entrypoints_response()
 
     @make_async
     def get_chat_previews(self, client_id: str, user_id: str) -> DBChatPreviews:

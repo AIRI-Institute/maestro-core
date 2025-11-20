@@ -3,6 +3,7 @@ from mmar_mapi import AIMessage, Chat, ChatMessage, DomainInfo, TrackInfo
 from mmar_mapi.api import ChatManagerAPI, LLMAccessorAPI
 from mmar_mapi.tracks import TrackI, load_tracks
 from mmar_ptag import ptag_client
+from mmar_utils import pretty_line
 
 from src.config import DOMAINS_CAPTIONS, TRACKS_MODULE, Config
 
@@ -39,5 +40,5 @@ class ChatManagerExamples(ChatManagerAPI):
 
         messages = track.get_response(chat=chat)
 
-        logger.debug(f"Processing {chat_id} -> {messages}")
+        logger.debug(f"Processing {chat_id} -> {pretty_line(repr(messages), cut_count=400)}")
         return messages

@@ -4,12 +4,15 @@ from types import SimpleNamespace
 
 import fire
 from mmar_llm import EntrypointsConfig
-from mmar_mapi import AIMessage, Context, HumanMessage
-from mmar_mcli import MaestroClient
+from mmar_mapi import AIMessage, Context, HumanMessage, make_content
+from mmar_mcli import FileData, MaestroClient
 from mmar_utils import take_exactly_one
 
 FORCE = bool(int(os.environ.get("force", "0")))
 NO_INPUT = bool(int(os.environ.get("no_input", "0")))
+ADDR = os.environ.get("addresses__maestro", "localhost:7732")
+HEADERS_EXTRA = os.environ.get('headers_extra', None)
+CLIENT_ID = 'TEST'
 
 
 class NoRecords(Exception):
@@ -26,7 +29,14 @@ def ask_is_yes(question) -> bool:
     return len(answer) == 0 or answer.startswith("y")
 
 
-def user_func(ai_msg: AIMessage, records) -> HumanMessage:
+def parse_file_path(text) -> Path | None:
+    if not text.startswith("@"):
+        return None
+    maybe_path = Path(text[1:])
+    return maybe_path if maybe_path.is_file() else None
+
+
+async def user_func(mc, ai_msg: AIMessage, records) -> HumanMessage:
     if ai_msg.state == "final":
         print("Exit!")
     print(f"\nBot (state={ai_msg.state})> {ai_msg.text}")
@@ -36,7 +46,7 @@ def user_func(ai_msg: AIMessage, records) -> HumanMessage:
 
     if records:
         expected_state, text = records[0]
-        if expected_state != ai_msg.state:
+        if expected_state and expected_state != ai_msg.state:
             raise ValueError(f"Expected {expected_state}, found: {ai_msg.state}")
         del records[0]
         print(f"User (AUTO)> {text}")
@@ -44,20 +54,37 @@ def user_func(ai_msg: AIMessage, records) -> HumanMessage:
         if NO_INPUT:
             raise NoRecords()
         text = input("User> ")
-    if text.isnumeric():
+
+    user_fpath = parse_file_path(text)
+
+    if user_fpath:
+        resource_name = user_fpath.name
+        fd: FileData = (resource_name, user_fpath.read_bytes())
+        resource_id = await mc.upload_resource(fd, CLIENT_ID)
+        resource = {"resource_id": resource_id, "resource_name": resource_name}
+        content = make_content(resource=resource)
+    elif text.isnumeric():
         ii = int(text)
         if buttons and ii in range(1, len(buttons) + 1):
             text = buttons[ii - 1][0]
             print(f"User (decrypted)> {text}")
-    return HumanMessage(content=text)
+        content = text
+    else:
+        content = text
+
+    return HumanMessage(content=content)
 
 
 async def repl(mc, context, records):
-    ai_msg = take_exactly_one(await mc.send_message(context, HumanMessage(content="/start")))
+    msg = HumanMessage(content="/start")
+    response = await mc.send_message(context, msg)
+    if not response:
+        raise ValueError(f"No response for context={repr(context)} and msg={repr(msg)}")
+    ai_msg = take_exactly_one(response)
     while ai_msg.state != "final":
-        human_msg = user_func(ai_msg, records)
+        human_msg = await user_func(mc, ai_msg, records)
         ai_msg = take_exactly_one(await mc.send_message(context, human_msg))
-    print(f'\nBot ({ai_msg.state})> {ai_msg.content}')
+    print(f"\nBot ({ai_msg.state})> {ai_msg.content}")
     return ai_msg.text
 
 
@@ -66,7 +93,7 @@ def parse_records(records: list[str] | None) -> list[tuple[str, str]]:
         return []
     parsed = []
     for record in records:
-        parts = record.split("=")
+        parts = record.split("=", 1)
         if len(parts) != 2:
             raise ValueError(f"Bad record: {record}")
         parsed.append(tuple(parts))
@@ -94,8 +121,7 @@ async def main(track_id=None, *records):
         print(f"Allowed tracks: {TRACKS}")
         return
     records = parse_records(records)
-    addr = "localhost:7732"
-    config = SimpleNamespace(addresses__maestro=addr)
+    config = SimpleNamespace(addresses__maestro=ADDR, headers_extra=HEADERS_EXTRA)
     mc = MaestroClient(config)
     context = Context(track_id=track_id)
 

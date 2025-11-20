@@ -49,6 +49,7 @@ def _parse_prompt_for_image(payload: Payload) -> str:
 class LLMAccessor(LLMAccessorAPI):
     def __init__(self, config: Config):
         self.config = config
+        self.wait_seconds = config.wait_seconds_on_llm_retry
         self.entrypoint_keys = list(config.llm.entrypoints.keys())
 
         self.entrypoint_accessor = EntrypointsAccessor(config.llm)
@@ -135,7 +136,8 @@ class LLMAccessor(LLMAccessorAPI):
     def _get_response_from_payload(
         self, entrypoint: AbstractEntryPoint, payload: Payload, props: LLMCallProps = LCP
     ) -> ResponseExt:
-        retrier = retry_on_cond(title=f"#get_response(entrypoint_key={props.entrypoint_key})", attempts=props.attempts)
+        ek_pretty = f"(entrypoint_key={props.entrypoint_key})" if props.entrypoint_key else ""
+        retrier = retry_on_cond(title=f"#get_response{ek_pretty}", attempts=props.attempts, wait_seconds=self.wait_seconds)
         get_response_by_payload = retrier(entrypoint.get_response_by_payload)
         payload_dict = {
             "messages": payload.model_dump()["messages"],
@@ -164,7 +166,8 @@ class LLMAccessor(LLMAccessorAPI):
         payload: Payload = Payload.parse(request)
         response = self._get_response_ext(payload, props)
         elapsed = time.time() - start
-        logger.info(f"Ready in {elapsed:.2f} seconds ( {payload.show_pretty(detailed=True)} )")
+        ek_pretty = f", entrypoint_key={props.entrypoint_key}" if props.entrypoint_key else ""
+        logger.info(f"Ready in {elapsed:.2f} seconds ( {payload.show_pretty(detailed=True)}{ek_pretty} )")
         return response
 
     def _get_response_ext(self, payload: Payload, props: LLMCallProps) -> ResponseExt:
@@ -219,6 +222,7 @@ class LLMAccessor(LLMAccessorAPI):
             title=f"#get_embedding(entrypoint_key={props.entrypoint_key}), prompt={prompt_pretty}",
             attempts=props.attempts,
             condition=lambda embedding: any(map(abs, embedding)),
+            wait_seconds=self.wait_seconds,
         )
         get_embedding = retrier(entrypoint.get_embedding)
         return get_embedding(prompt)

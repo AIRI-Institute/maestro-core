@@ -15,6 +15,7 @@ class Config(BaseSettings):
     llm: LoadPydanticModel[EntrypointsConfig, "entrypoints_path"] = None
 
     warmup_entrypoints: bool = False
+    wait_seconds_on_llm_retry: float = 1.0
 
 
 def load_config(env_file: str | None = None) -> Config:

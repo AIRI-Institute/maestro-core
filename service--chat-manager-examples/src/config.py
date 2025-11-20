@@ -1,10 +1,7 @@
 import os
-from pathlib import Path
 from types import SimpleNamespace
 
-from mmar_ptag import LogLevelEnum
-from mmar_utils import ExistingFile
-from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 TRACKS_MODULE = "src.tracks"
@@ -18,6 +15,8 @@ class AddressesConfig(BaseModel):
     moderator: str = "moderator:31111"
     text_extractor: str = "text-extractor:9681"
     llm_accessor: str = "llm-accessor:40631"
+    question_detector: str = "question-detector:31611"
+    text_extractor: str = "text-extractor:9681"
 
 
 class MessagesErrorConfig(BaseModel):
@@ -35,6 +34,7 @@ class Config(BaseSettings):
 
     messages: MessagesConfig = MessagesConfig()
     addresses: AddressesConfig = AddressesConfig()
+    hide_tracks_domains: bool = False
 
 
 def load_config(env_file=None):

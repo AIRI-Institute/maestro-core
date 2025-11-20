@@ -75,6 +75,7 @@ def retry_on_ex(
 
 def retry_on_cond(
     title: str | None = None,
+    wait_seconds: int | float | None = 1,
     attempts: int = 3,
     condition: Callable[[T], bool] = bool,
 ) -> Callable[[Func], Func]:
@@ -87,7 +88,10 @@ def retry_on_cond(
                 result = func(*args, **kwargs)
                 if condition(result):
                     return result
+                if wait_seconds:
+                    time.sleep(wait_seconds)
             return None
 
         return wrapper
+
     return decorator

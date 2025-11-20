@@ -1,7 +1,7 @@
 [project]
 name = "mmar-llm"
 # dynamic version is not supported yet on uv_build
-version = "1.1.5"
+version = "1.1.6"
 description = "llm wrappers for multimodal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -25,11 +25,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "requests~=2.32.3",
-    "gigachat==0.1.39.post1",
+    "requests~=2.32.5",
+    "gigachat==0.1.43",
     "tiktoken==0.8.0",
     "openai==1.61.0",
-    "loguru~=0.7.2",
+    "loguru~=0.7.3",
 ]
 
 [build-system]

@@ -2,6 +2,7 @@ DOC=docker compose --progress='plain'
 records=
 env_params=
 RUN_MAESTRO_CLI=$(env_params) uv run --prerelease=allow  --refresh-package=mmar-llm --refresh-package=mmar-mapi --refresh-package=mmar-mcli python maestro_client_cli.py
+service=
 
 build:
 	 $(DOC) build
@@ -15,7 +16,7 @@ up:
 	$(DOC) up --detach
 
 logs:
-	$(DOC) logs --follow
+	$(DOC) logs --follow $(service)
 
 logs-llm-accessor:
 	$(DOC) logs --follow llm-accessor
@@ -33,6 +34,9 @@ run-dummy:
 
 run-wizard:
 	$(RUN_MAESTRO_CLI) EntrypointsWizard $(records)
+
+run-describer:
+	$(RUN_MAESTRO_CLI) Describer $(records)
 
 update-entrypoints:
 	cp entrypoints.json data/entrypoints.json
