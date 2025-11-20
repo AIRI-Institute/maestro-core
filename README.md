@@ -2,6 +2,8 @@
 
 This is Minimal subset of Maestro to demonstrate Maestro architecture.
 
+Framework description is available here: https://airi-institute.github.io/maestro-cover
+
 It consist of:
 - gateway :: backend gateway for all requests
 - chat-manager-examples :: component which manages bots business-logic
