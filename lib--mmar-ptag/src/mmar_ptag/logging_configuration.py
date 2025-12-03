@@ -21,7 +21,7 @@ class LogLevelEnum(StrEnum):
     CRITICAL = auto()
 
 
-def init_logger(log_level: str | LogLevelEnum):
+def init_logger(log_level: str | LogLevelEnum = LogLevelEnum.DEBUG):
     if isinstance(log_level, str):
         log_level = LogLevelEnum.__members__.get(log_level.upper(), LogLevelEnum.DEBUG)
     logger.remove()

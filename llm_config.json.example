@@ -1,0 +1,33 @@
+{
+	"default_endpoint_key": "gemini",
+	"warmup": true,
+	"endpoints": {
+    "gigachat": {
+      "key": "gigachat",
+      "caption": "GigaChat",
+      "descriptor": "gigachat",
+      "args": {
+        "client_id": "???",
+        "client_secret": "???"
+      }
+    },
+		"deep-seek": {
+      "key": "deep-seek",
+			"caption": "DeepSeek V3",
+      "descriptor": "openrouter",
+      "args": {
+        "model_id": "deepseek/deepseek-chat-v3-0324",
+        "api_key": "???"
+      }
+    },
+		"llama": {
+      "key": "llama",
+			"caption": "Llama 3.1 8B Instruct",
+      "descriptor": "openrouter",
+      "args": {
+        "model_id": "meta-llama/llama-3.1-8b-instruct",
+        "api_key": "???"
+      }
+		}
+	}
+}

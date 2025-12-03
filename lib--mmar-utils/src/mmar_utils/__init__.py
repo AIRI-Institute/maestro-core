@@ -3,7 +3,6 @@
 Utilities for multi-modal architectures team
 """
 
-from mmar_utils.models import ResourcesModel
 from mmar_utils.validators import ExistingDir
 
 from .decorators_on_error_log_and_none import on_error_log_and_none
@@ -67,7 +66,6 @@ __all__ = [
     "try_parse_int",
     "try_parse_json",
     "postprocess_text",
-    "ResourcesModel",
     "clean_and_fix_text",
     "noop",
     "anoop",

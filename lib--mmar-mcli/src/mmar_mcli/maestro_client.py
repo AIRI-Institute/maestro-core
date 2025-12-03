@@ -1,3 +1,4 @@
+import json
 import time
 from functools import cache, partial
 from types import SimpleNamespace
@@ -64,16 +65,32 @@ class MaestroClientI:
         pass
 
 
+def parse_headers(headers: dict | str | None) -> dict | None:
+    if not headers:
+        return None
+    if isinstance(headers, dict):
+        return headers
+    if isinstance(headers, str):
+        try:
+            return json.loads(headers)
+        except Exception:
+            breakpoint()
+            logger.warning(f"Failed to parse headers: {headers}")
+            return None
+    logger.warning(f"Unexpected headers with type {type(headers)} passed: {headers}")
+    return None
+
+
 class MaestroClient(MaestroClientI):
     def __init__(self, config: MaestroConfig):
-        addresses__maestro: str = getattr(config, "addresses__maestro", "https://maestro.airi.net")
+        addresses__maestro: str = getattr(config, "addresses__maestro", None) or "https://maestro.airi.net"
+        headers_extra: dict[str, str] | None = parse_headers(getattr(config, "headers_extra", None))
         error: str = getattr(getattr(config, "res", SimpleNamespace()), "error", "Server is not available")
-        headers_extra: dict[str, str] | None = getattr(config, "headers_extra", "")
         files_dir: str | None = getattr(config, "files_dir", None)
         timeout: int = getattr(config, "timeout", 120)
 
         self.url = fix_maestro_address(addresses__maestro) + "/" + ROUTES.send
-        logger.info(f"Creating client, maestro url: {self.url}")
+        logger.info(f"Creating client, maestro URL: {self.url}")
         self.request = partial(request_with_session, timeout=timeout, headers_extra=headers_extra)
         self.msg_data_response_error: MessageData = make_content(text=error), None
 

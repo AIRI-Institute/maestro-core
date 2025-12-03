@@ -5,7 +5,7 @@ WORKDIR /app/moderator
 
 RUN --mount=type=cache,target=/root/.cache/uv \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-  uv sync --no-dev --prerelease=allow --refresh-package=mmar-ptag --refresh-package=mmar-mapi --refresh-package=mmar-utils
+  uv sync --no-dev --prerelease=allow --refresh-package=mmar-ptag --refresh-package=mmar-mapi --refresh-package=mmar-utils  --refresh-package=mmar-flame
 
 COPY pyproject.toml pyproject.toml
 COPY src/ src/

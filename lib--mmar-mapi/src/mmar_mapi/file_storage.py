@@ -29,7 +29,101 @@ def generate_fname(content, dtype):
     return fname
 
 
-class FileStorage:
+class FileStorageAPI:
+    def upload_maybe(self, content: bytes | str | None, fname: str) -> ResourceId | None:
+        raise NotImplementedError
+
+    def upload(self, content: bytes | str, fname: str, origin: str | None = None) -> ResourceId:
+        raise NotImplementedError
+
+    def get_metadata(self, resource_id: ResourceId) -> dict | None:
+        raise NotImplementedError
+
+    def get_fname(self, resource_id: ResourceId) -> str | None:
+        raise NotImplementedError
+
+    async def upload_async(self, content: bytes | str, fname: str) -> ResourceId:
+        raise NotImplementedError
+
+    def upload_dir(self, resource_ids: list[ResourceId], dir_name: str="") -> ResourceId:
+        raise NotImplementedError
+
+    def download(self, resource_id: ResourceId) -> bytes:
+        raise NotImplementedError
+
+    async def download_async(self, resource_id: ResourceId) -> bytes:
+        raise NotImplementedError
+
+    def download_text(self, resource_id: ResourceId) -> str:
+        raise NotImplementedError
+
+    def read_dir_or_none(self, resource_id: ResourceId) -> list[ResourceId] | None:
+        raise NotImplementedError
+
+    def get_path(self, resource_id: ResourceId | None) -> Path | None:
+        raise NotImplementedError
+
+    def is_valid(self, resource_id: ResourceId | None) -> bool:
+        raise NotImplementedError
+
+    def is_file(self, resource_id: ResourceId | None) -> bool:
+        raise NotImplementedError
+
+    def is_dir(self, resource_id: ResourceId | None) -> bool:
+        raise NotImplementedError
+
+    def get_dtype(self, resource_id: ResourceId | None) -> str | None:
+        raise NotImplementedError
+
+    def unzip_file(self, resource_id: str) -> ResourceId:
+        raise NotImplementedError
+
+class FileStorageBasic(FileStorageAPI):
+    """ resource_id(file) == absolute_path(file), only reading operations supported """
+    def get_fname(self, resource_id: ResourceId) -> str | None:
+        return Path(resource_id).name
+
+    def download(self, resource_id: ResourceId) -> bytes:
+        return Path(resource_id).read_bytes()
+
+    async def download_async(self, resource_id: ResourceId) -> bytes:
+        return self.download(resource_id)
+
+    def download_text(self, resource_id: ResourceId) -> str:
+        return Path(resource_id).read_text(encoding="utf-8")
+
+    def read_dir_or_none(self, resource_id: ResourceId) -> list[ResourceId] | None:
+        if not self.is_dir(resource_id):
+            return None
+        res = self.download_text(resource_id).split("\n")
+        return res
+
+    def get_path(self, resource_id: ResourceId | None) -> Path | None:
+        return self._get_path(resource_id)
+
+    def _get_path(self, resource_id: ResourceId | None) -> Path | None:
+        if not resource_id:
+            return None
+        path = Path(resource_id)
+        return path if (path.exists() and path.is_file()) else None
+
+    def is_valid(self, resource_id: ResourceId | None) -> bool:
+        path = self._get_path(resource_id)
+        return path is not None
+
+    def is_file(self, resource_id: ResourceId | None) -> bool:
+        path = self._get_path(resource_id)
+        return bool(path and path.suffix != SUFFIX_DIR)
+
+    def is_dir(self, resource_id: ResourceId | None) -> bool:
+        path = self._get_path(resource_id)
+        return bool(path and path.suffix == SUFFIX_DIR)
+
+    def get_dtype(self, resource_id: ResourceId | None) -> str | None:
+        return resource_id and resource_id.rsplit(".")[-1].lower()
+
+
+class FileStorage(FileStorageAPI):
     def __init__(self, files_dir):
         self.files_dir = Path(files_dir)
         self.files_dir.mkdir(exist_ok=True, parents=True)
@@ -76,9 +170,9 @@ class FileStorage:
     async def upload_async(self, content: bytes | str, fname: str) -> ResourceId:
         return self.upload(content, fname)
 
-    def upload_dir(self, resource_ids: list[ResourceId]) -> ResourceId:
+    def upload_dir(self, resource_ids: list[ResourceId], dir_name: str="") -> ResourceId:
         content = "\n".join(resource_ids)
-        res = self.upload(content=content, fname=".dir")
+        res = self.upload(content=content, fname=f"{dir_name}.dir")
         return res
 
     def download(self, resource_id: ResourceId) -> bytes:
@@ -139,3 +233,13 @@ class FileStorage:
 
         res = self.upload_dir(resource_ids)
         return res
+
+    @staticmethod
+    def create(files_dir: str | None) -> FileStorageAPI:
+        return _create_file_storage(files_dir)
+
+def _create_file_storage(files_dir: str | None):
+    if files_dir:
+        return FileStorage(files_dir)
+    else:
+        return FileStorageBasic()

@@ -1,5 +1,5 @@
 data/
-entrypoints.json
+llm_config.json
 uv.lock
 venv
 .venv

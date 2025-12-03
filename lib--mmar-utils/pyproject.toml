@@ -1,6 +1,6 @@
 [project]
 name = "mmar-utils"
-version = "1.1.8"
+version = "1.1.11"
 description = "Utilities for multi-modal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -24,7 +24,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pydantic~=2.11.7",
+    "pydantic~=2.12.5",
     "tqdm~=4.67.0",
     "types-tqdm~=4.67.0",
 ]

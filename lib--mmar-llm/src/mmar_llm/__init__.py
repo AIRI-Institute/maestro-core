@@ -1,33 +1,29 @@
-from .base_chat import AbstractEntryPoint
-from .entrypoints import (
-    AiriChatEntryPoint,
-    FusionBrainEntrypoint,
-    GigaChatCensoredEntryPoint,
-    GigaChatEntryPoint,
-    GigaMax2EntryPoint,
-    GigaMax2SberdevicesEntryPoint,
-    GigaMaxEntryPoint,
-    GigaPlusEntryPoint,
-    OpenRouterEntryPoint,
-    YandexGPTEntryPoint,
+from mmar_llm.endpoints import (
+    AiriChatEndpoint,
+    DummyEndpoint,
+    FusionBrainEndpoint,
+    GigaChatEndpoint,
+    GigaChatSberdevicesEndpoint,
+    LLMEndpoint,
+    OpenRouterEndpoint,
+    YandexGPTEndpoint,
 )
-from .entrypoints_accessor import EntrypointsAccessor, create_entrypoint
-from .entrypoints_config import EntrypointConfig, EntrypointsConfig
+from mmar_llm.llm_hub import LLMHub
+from mmar_llm.llm_hub_config import LLMConfig, LLMEndpointConfig, LLMHubConfig
 
 __all__ = [
-    "AbstractEntryPoint",
-    "OpenRouterEntryPoint",
-    "AiriChatEntryPoint",
-    "YandexGPTEntryPoint",
-    "GigaChatCensoredEntryPoint",
-    "GigaChatEntryPoint",
-    "GigaPlusEntryPoint",
-    "GigaMaxEntryPoint",
-    "GigaMax2EntryPoint",
-    "GigaMax2SberdevicesEntryPoint",
-    "FusionBrainEntrypoint",
-    "create_entrypoint",
-    "EntrypointsAccessor",
-    "EntrypointsConfig",
-    "EntrypointConfig",
+    "AiriChatEndpoint",
+    "DummyEndpoint",
+    "EndpointsConfig",
+    "FusionBrainEndpoint",
+    "GigaChatEndpoint",
+    "GigaChatSberdevicesEndpoint",
+    "LLMConfig",
+    "LLMEndpoint",
+    "LLMEndpointConfig",
+    "LLMEndpointsConfig",
+    "LLMHub",
+    "LLMHubConfig",
+    "OpenRouterEndpoint",
+    "YandexGPTEndpoint",
 ]

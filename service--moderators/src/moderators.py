@@ -3,7 +3,7 @@ from loguru import logger
 from enum import StrEnum
 import ujson as json
 
-from mmar_mapi.api import BinaryClassifiersAPI
+from mmar_mapi.services import BinaryClassifiersAPI
 from mmar_flame import Moderator
 
 from src.config import Config

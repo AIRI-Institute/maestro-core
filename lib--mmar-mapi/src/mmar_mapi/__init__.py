@@ -1,4 +1,4 @@
-from .file_storage import FileStorage, ResourceId
+from .file_storage import FileStorageAPI, FileStorageBasic, FileStorage, ResourceId
 from .models.base import Base
 from .models.chat import (
     Chat,
@@ -31,6 +31,7 @@ __all__ = [
     "DoctorChoiceXMLTagEnum",
     "DomainInfo",
     "FileStorage",
+    "FileStorageAPI",
     "HumanMessage",
     "MTRSLabelEnum",
     "MTRSXMLTagEnum",

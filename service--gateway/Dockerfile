@@ -3,14 +3,14 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:c4089b0085cf4d38e38d5cdaa5e57752c1878a6f
 
 RUN apt-get update && apt-get install -y --no-install-recommends libmagic1 && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app/gateway
+WORKDIR /app/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
   uv sync --prerelease=allow --refresh-package=mmar-ptag --refresh-package=mmar-mapi --refresh-package=mmar-utils
 
 COPY pyproject.toml pyproject.toml
-COPY src/ src/
+COPY src/gateway gateway
 
 ENV UV_NO_SYNC=1
-CMD ["uv", "run", "-m", "src.main"]
+CMD ["uv", "run", "-m", "gateway.main"]

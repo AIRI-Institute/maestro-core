@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import fire
-from mmar_llm import EntrypointsConfig
+from mmar_llm import LLMConfig
 from mmar_mapi import AIMessage, Context, HumanMessage, make_content
 from mmar_mcli import FileData, MaestroClient
 from mmar_utils import take_exactly_one
@@ -11,8 +11,8 @@ from mmar_utils import take_exactly_one
 FORCE = bool(int(os.environ.get("force", "0")))
 NO_INPUT = bool(int(os.environ.get("no_input", "0")))
 ADDR = os.environ.get("addresses__maestro", "localhost:7732")
-HEADERS_EXTRA = os.environ.get('headers_extra', None)
-CLIENT_ID = 'TEST'
+HEADERS_EXTRA = os.environ.get("headers_extra", None)
+CLIENT_ID = "TEST"
 
 
 class NoRecords(Exception):
@@ -34,6 +34,14 @@ def parse_file_path(text) -> Path | None:
         return None
     maybe_path = Path(text[1:])
     return maybe_path if maybe_path.is_file() else None
+
+
+async def _upload(mc, fpath) -> dict:
+    resource_name = fpath.name
+    fd: FileData = (resource_name, fpath.read_bytes())
+    resource_id = await mc.upload_resource(fd, CLIENT_ID)
+    resource = {"resource_id": resource_id, "resource_name": resource_name}
+    return resource
 
 
 async def user_func(mc, ai_msg: AIMessage, records) -> HumanMessage:
@@ -58,10 +66,7 @@ async def user_func(mc, ai_msg: AIMessage, records) -> HumanMessage:
     user_fpath = parse_file_path(text)
 
     if user_fpath:
-        resource_name = user_fpath.name
-        fd: FileData = (resource_name, user_fpath.read_bytes())
-        resource_id = await mc.upload_resource(fd, CLIENT_ID)
-        resource = {"resource_id": resource_id, "resource_name": resource_name}
+        resource = await _upload(mc, user_fpath)
         content = make_content(resource=resource)
     elif text.isnumeric():
         ii = int(text)
@@ -100,40 +105,56 @@ def parse_records(records: list[str] | None) -> list[tuple[str, str]]:
     return parsed
 
 
-ENTRYPOINTS_WIZARD = "EntrypointsWizard"
-TRACKS = {"Dummy", ENTRYPOINTS_WIZARD, "Chatbot"}
+LLM_CONFIG_WIZARD = "LLMConfigWizard"
+TRACKS = {"Dummy", LLM_CONFIG_WIZARD, "Chatbot"}
 
 
-def process_entrypoints_wizard_result(result):
-    entrypoints_json = result
+def process_llm_config_wizard_result(result):
+    llm_config_json = result
     print("Result:")
-    print(entrypoints_json)
-    EntrypointsConfig.model_validate_json(entrypoints_json)
-    if not ask_is_yes("Update entrypoints.json?"):
+    print(llm_config_json)
+    LLMConfig.model_validate_json(llm_config_json)
+    if not ask_is_yes("Update llm_config.json?"):
         print("Exit")
         return
-    Path("entrypoints.json").write_text(entrypoints_json)
-    print("Updated entrypoints.json")
+    Path("llm_config.json").write_text(llm_config_json)
+    print("Updated llm_config.json")
 
 
-async def main(track_id=None, *records):
+def _make_maestro_client():
+    config = SimpleNamespace(addresses__maestro=ADDR, headers_extra=HEADERS_EXTRA)
+    mc = MaestroClient(config)
+    return mc
+
+
+async def track(track_id=None, *records):
     if not track_id:
         print(f"Allowed tracks: {TRACKS}")
         return
     records = parse_records(records)
-    config = SimpleNamespace(addresses__maestro=ADDR, headers_extra=HEADERS_EXTRA)
-    mc = MaestroClient(config)
+    mc = _make_maestro_client()
     context = Context(track_id=track_id)
 
     try:
         result = await repl(mc, context, records)
-        if track_id == ENTRYPOINTS_WIZARD:
-            process_entrypoints_wizard_result(result)
+        if track_id == LLM_CONFIG_WIZARD:
+            process_llm_config_wizard_result(result)
     except KeyboardInterrupt:
         print("\nInterrupted! Exit!")
     except NoRecords:
         print("No more records! Exit!")
 
 
+async def upload(fpath: str):
+    if not os.path.exists(fpath):
+        return f"Expected path to existing file, found: {fpath}"
+    fpath = Path(fpath)
+    assert fpath.is_file()
+
+    mc = _make_maestro_client()
+    resource = await _upload(mc, fpath)
+    return resource["resource_id"]
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    fire.Fire({"track": track, "upload": upload})

@@ -1,7 +1,7 @@
 [project]
 name = "mmar-ptag"
 # dynamic version is not supported yet on uv_build
-version = "1.0.13"
+version = "1.0.16"
 description = "pydantically-type-adapted-grpc framework for multimodal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -28,9 +28,9 @@ dependencies = [
     "grpcio~=1.68.1",
     "grpcio-tools~=1.68.1",
     "loguru~=0.7.2",
-    "pydantic~=2.11.7",
+    "pydantic~=2.12.5",
 
-    "mmar-utils~=1.1.0",
+    "mmar-utils~=1.1.11",
 ]
 
 [build-system]

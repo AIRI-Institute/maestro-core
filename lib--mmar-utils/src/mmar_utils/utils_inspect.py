@@ -2,7 +2,7 @@ import inspect
 import warnings
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
-from typing import Callable, get_type_hints, TypeVar, get_args, get_origin, Any
+from typing import Callable, get_type_hints, TypeVar, get_args, get_origin, Any, Literal
 
 from pydantic import TypeAdapter, RootModel, ValidationError
 
@@ -84,15 +84,16 @@ Methods = dict[str, Callable]
 Metadatas = dict[str, FuncMetadata]
 
 
-def _parse_param(param: inspect.Parameter) -> ArgMetadata | None:
+def _parse_param(func_name, param: inspect.Parameter) -> ArgMetadata | None:
     name = param.name
     param_type = param.annotation
     if param_type == empty:
-        raise ValueError(f"Not found type for parameter `{name}`")
+        raise ValueError(f"Function `{func_name}`: not found type for parameter `{name}`")
     # todo validate param_type: allow only builtins and pydantic
     default = param.default
-    if default != empty and not isinstance(default, param_type):
-        raise ValueError(f"For argument `{name}` type {param_type} is not aligned with default value: {default}")
+
+    if default != empty and not isinstance_ext(default, param_type):
+        raise ValueError(f"Function `{func_name}`: for argument `{name}` type {param_type} is not aligned with default value: {default}")
     arg_is_kw = param.kind == inspect.Parameter.KEYWORD_ONLY
     return ArgMetadata(name=name, typehint=param_type, default=default, is_kw=arg_is_kw)
 
@@ -105,6 +106,7 @@ def is_class_function(func):
 
 def _parse_args(func: Callable) -> list[ArgMetadata]:
     signature = inspect.signature(func)
+    func_name = func.__name__
     parameters_all = list(signature.parameters.values())
     if is_class_function(func):
         if parameters_all[0].name != "self":
@@ -112,7 +114,7 @@ def _parse_args(func: Callable) -> list[ArgMetadata]:
         parameters = parameters_all[1:]
     else:
         parameters = parameters_all
-    args_metadata_0 = [_parse_param(param) for param in parameters]
+    args_metadata_0 = [_parse_param(func_name, param) for param in parameters]
     args_metadata = [am for am in args_metadata_0 if am]
 
     return args_metadata
@@ -130,6 +132,11 @@ def isinstance_ext(value: Any, typehint: Any, validate_ext: bool = False) -> boo
         return isinstance(value, typehint)
     except TypeError:
         pass
+
+    if get_origin(typehint) is Literal:
+        allowed_values = get_args(typehint)
+        return value in allowed_values
+
     if not validate_ext:
         return True
     pydantic_model = get_pydantic_type(typehint)
@@ -240,10 +247,10 @@ def extract_method_metadata(method: Callable) -> FuncMetadata | None:
     return extract_func_metadata(func)
 
 
-def extract_interface_metadatas(interface) -> Metadatas:
+def extract_interface_metadatas(interface, only_kw: bool=True) -> Metadatas:
     metadatas = {}
     for name, func in inspect.getmembers(interface, predicate=inspect.isfunction):
-        func_metadata = extract_func_metadata(func)
+        func_metadata = extract_func_metadata(func, only_kw=only_kw)
         if name.startswith("_"):
             continue
         if func_metadata is None:
@@ -279,7 +286,7 @@ def _get_full_class_name(cls):
     return cls.__module__ + "." + cls.__qualname__
 
 
-def extract_and_validate_obj_methods_metadatas(obj):
+def extract_and_validate_obj_methods_metadatas(obj) -> tuple[Methods, Metadatas]:
     interface = _get_interface(obj)
     metadatas_i = extract_interface_metadatas(interface)
 

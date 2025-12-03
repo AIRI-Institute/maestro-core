@@ -1,0 +1,117 @@
+[project]
+name = "ocr"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+dependencies = [
+    "cryptography>=3.1",
+    "docling==2.40.0",
+    "langdetect==1.0.9",
+    "loguru~=0.7.2",
+    "pydantic~=2.12.5",
+    "pydantic-settings~=2.12.0",
+    "pypdf==4.1.0",
+    "pytesseract==0.3.13",
+    "tesserocr~=2.8.0",
+    "more_itertools~=10.7.0",
+
+    "mmar-mapi~=1.4.2",
+    "mmar-ptag~=1.0.13",
+    "mmar-utils~=1.1.11",
+]
+
+[project.optional-dependencies]
+cpu = [
+  "torch==2.6.0",
+  "torchvision>=0.21.0",
+  "transformers[torch]==4.50.0",
+]
+cu124 = [
+  "accelerate>=1.6.0",
+  "setuptools>=78.1.0",
+  "torch==2.6.0",
+  "torchvision>=0.21.0",
+  "transformers==4.50.0",
+]
+dev = [
+    "editdistance>=0.8.1",
+    "nltk>=3.9.1",
+    "python-levenshtein>=0.27.1",
+    "fire>=0.7.0",
+]
+
+[tool.uv]
+no-build-isolation-package = ["flash-attn"]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu124" },
+  ],
+]
+
+
+[tool.uv.sources]
+mypackage = { path = "src" }
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu124", extra = "cu124" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu124", extra = "cu124" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.dependency-metadata]]
+name = "flash-attn"
+requires-dist = ["setuptools", "torch", "einops"]
+
+[tool.flake8]
+ignore = ['W291', 'E126', 'W504', 'E203']
+per-file-ignores = ['__init__.py:F401']
+max-line-length = 120
+exclude = ['.venv', 'test.py', '.git', '__pycache__', 'venv', 'k8s']
+max-complexity = 10
+
+[tool.mypy]
+python_version = "3.13"
+warn_unused_configs = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+no_implicit_optional = true
+strict_optional = true
+exclude = ["test.py"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.30.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [ "src" ]

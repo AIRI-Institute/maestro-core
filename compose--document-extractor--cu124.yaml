@@ -1,0 +1,22 @@
+x-common: &common
+  networks: [network]
+  restart: "no"
+  volumes: ["./data:/mnt/data"]
+  environment:
+    TZ: Europe/Moscow
+    ENV_FILE: /mnt/data/.env
+networks: {network: {driver: bridge, name: "network-maestro-core"}}
+
+services:
+  document-extractor:
+    build: {context: ./service--document-extractor, args: {EXTRA: cu124}}
+    image: maestro-core--document-extractor
+    ports: ['9671:9671']
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['1']
+              capabilities: [gpu]
+    <<: *common

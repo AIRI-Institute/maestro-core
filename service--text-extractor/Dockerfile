@@ -1,7 +1,7 @@
 FROM python:3.13-slim@sha256:079601253d5d25ae095110937ea8cfd7403917b53b077870bccd8b026dc7c42f
 COPY --from=ghcr.io/astral-sh/uv@sha256:c4089b0085cf4d38e38d5cdaa5e57752c1878a6f41f2e3a3a234dc5f23942cb4 /uv /uvx /bin/
 
-WORKDIR /app/text-extractor
+WORKDIR /app/
 RUN apt update -y \
   && apt install -y tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
@@ -18,6 +18,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV UV_NO_SYNC=1
 
 COPY pyproject.toml pyproject.toml
-COPY src/ src/
+COPY src/text_extractor text_extractor
 
-CMD ["uv", "run", "-m", "src.main"]
+CMD ["uv", "run", "-m", "text_extractor.main"]

@@ -7,7 +7,7 @@ Framework description is available here: https://airi-institute.github.io/maestr
 It consist of:
 - gateway :: backend gateway for all requests
 - chat-manager-examples :: component which manages bots business-logic
-- llm-accessor :: service to interact with LLM
+- llm-hub :: service to interact with LLM
 # Usage: steps
 ## Start Maestro:
 ```sh
@@ -18,25 +18,41 @@ make build setup-env up
 make run-dummy records='dummy=hello dummy=test dummy=exit'
 ```
 ## Setup LLM
-LLM integrations supported. (Right now only `OpenRouter` or `Gigachat`)
+LLM integrations supported. (Right now only `OpenRouter` or `GigaChat`)
 
-If you have keys, you need to setup `entrypoints.json`, configuration for LLM.
+If you have keys, you need to setup `llm_config.json`, configuration for LLM.
 ### Variant 1
-- copy `entrypoints.json.example` to `entrypoints.json`
-- edit `entrypoints.json` :: fill `???` placeholders with your keys, fix `model_id` if you need, remove excess entrypoints
-- copy `entrypoints.json` to `./data`, run `make update-entrypoints`
-- restart llm-accessor, run `make restart-llm-accessor`
+- copy `llm_config.json.example` to `llm_config.json`
+- edit `llm_config.json` :: fill `???` placeholders with your keys, fix `model_id` if you need, remove excess llm_config
+- copy `llm_config.json` to `./data`, run `make update-llm-config`
+- restart llm-hub, run `make restart-llm-hub`
 ### Variant 2
-- use wizard to setup `entrypoints.json`: run `make run-wizard`
+- use wizard to setup `llm_config.json`: run `make run-wizard`
 - follow Maestro CLI steps.
-- copy `entrypoints.json` to `./data`, run `make update-entrypoints`
-- restart llm-accessor, run `make restart-llm-accessor`
+- copy `llm_config.json` to `./data`, run `make update-llm-config`
+- restart llm-hub, run `make restart-llm-hub`
 ## Run LLM example
 ```sh
 make run-chatbot records='start="Какая ты языковая модель?"'
 ```
 Questions forwarded to your configured LLM.
-## Run Describer example
+## Run `Describer` example
 ```sh
 make run-describer
 ```
+# document-extractor (EXPERIMENTAL)
+## Build and up container with document-extractor
+- on CPU :: `make document-extractor-up`
+- on GPU :: `make document-extractor-up-on-gpu`
+  - assumed CUDA with version >= 12.4 available
+  - run `nvidia-smi | grep -o 'CUDA Version.*'` to check it
+## Prepare your document
+```sh
+make prepare-document
+```
+## Run `DocumentDescriber` example
+```sh
+make run-document-describer
+```
+
+**Note**: `document-extractor` works pretty slow on CPU.

@@ -3,6 +3,7 @@
 import types
 from collections.abc import Callable
 from contextvars import ContextVar
+from contextlib import contextmanager
 from typing import Generic, TypeVar, cast
 
 from google.protobuf.message import Message
@@ -24,6 +25,47 @@ from .ptag_pb2_grpc import PTAGServiceServicer, PTAGServiceStub, add_PTAGService
 
 T = TypeVar("T")
 TRACE_ID_VAR: ContextVar[str] = ContextVar(TRACE_ID, default="")
+
+
+@contextmanager
+def installed_trace_id(trace_id):
+    token = TRACE_ID_VAR.set(trace_id)
+    try:
+        yield
+    finally:
+        TRACE_ID_VAR.reset(token)
+
+@contextmanager
+def nothing(*args, **kwargs):
+    yield
+    
+
+class TraceIdProxy(Generic[T]):
+    def __init__(self, service: T):
+        self.service = service
+        
+        _, metadatas = extract_and_validate_obj_methods_metadatas(service)
+        check_valid_trace_id_in_metadatas(metadatas)
+        self.metadatas = metadatas
+        
+        self._set_proxy_methods()
+    
+    def _set_proxy_methods(self):
+        for mm in self.metadatas.values():
+            proxy = self._make_trace_id_proxy(mm)
+            bound_func = types.MethodType(proxy, self)
+            setattr(self, mm.name, bound_func)
+    
+    def _make_trace_id_proxy(self, mm):
+        def wrapped(proxy_self, *args, **kwargs):
+            trace_id = kwargs.pop('trace_id', None)
+            context = nothing() if trace_id is None else logger.contextualize(trace_id=trace_id)
+            with context:
+                return getattr(proxy_self.service, mm.name)(*args, **kwargs)
+        return wrapped
+    
+    def __str__(self):
+        return f"TraceIdProxy('{get_full_name(self.service)}')"
 
 
 def check_valid_trace_id_in_func(fm: FuncMetadata):
@@ -72,12 +114,8 @@ class WrappedPTAGService(PTAGServiceServicer):
             input_names = (am.name for am in method_metadata.args_metadata)
             input_kwargs = dict(zip(input_names, input_obj))
 
-            token = TRACE_ID_VAR.set(trace_id)
-            try:
-                with logger.contextualize(trace_id=trace_id):
-                    output_obj = method(**input_kwargs)
-            finally:
-                TRACE_ID_VAR.reset(token)
+            with installed_trace_id(trace_id=trace_id):
+                output_obj = method(**input_kwargs)
 
             payload = result_adapter.dump_json(output_obj)
             return PTAGResponse(FunctionName=method_name, Payload=payload)
@@ -187,7 +225,7 @@ def _is_valid_address(address) -> bool:
     return True
 
 
-def _try_fix_address(address):
+def _try_fix_address(address: int | str):
     if isinstance(address, int) or address.isnumeric():
         return f"0.0.0.0:{address}"
     if address.startswith(":") and address[1:].isnumeric():

@@ -6,8 +6,9 @@ from loguru import logger
 
 
 def convert_snake_to_pascal(name: str) -> str:
-    """snake_to_pascal -> SnakeToPascal"""
-    return "".join(map(str.capitalize, name.split("_")))
+    """snake_to_pascal -> SnakeToPascal. Exclusion: llm -> LLM"""
+    name_parts = name.split("_")
+    return "".join(pt.capitalize() if pt != 'llm' else 'LLM' for pt in name_parts)
 
 
 def get_main_object_name(module: ModuleType) -> str:
