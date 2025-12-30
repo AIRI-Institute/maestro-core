@@ -1,12 +1,12 @@
 from dishka import Provider, Scope, provide
-from mmar_mapi import FileStorage
-from mmar_mapi.services import BinaryClassifiersAPI, LLMHubAPI, TextExtractorAPI, DocumentExtractorAPI
-from mmar_mapi.tracks import TrackI, load_tracks
 from mmar_ptag import ptag_client
 
 from chat_manager_examples.chat_manager_examples import ChatManagerExamples
 from chat_manager_examples.config import DOMAINS_CAPTIONS, TRACKS_MODULE, Config
 from chat_manager_examples.legacy import provide_all_and_memoize
+from mmar_mapi import FileStorage
+from mmar_mapi.services import BinaryClassifiersAPI, DocumentExtractorAPI, LLMHubAPI, TextExtractorAPI
+from mmar_mapi.tracks import TrackI, load_tracks
 
 
 class IOC(Provider):
@@ -14,7 +14,7 @@ class IOC(Provider):
 
     @provide
     def config(self) -> Config:
-        return Config.load()
+        return Config.load()  # type: ignore[return-value]
 
     @provide
     def file_storage(self, config: Config) -> FileStorage:
@@ -37,7 +37,7 @@ class IOC(Provider):
         return ptag_client(DocumentExtractorAPI, config.addresses.document_extractor)
 
     tracks = provide_all_and_memoize(
-        provides=load_tracks(TRACKS_MODULE).values(),
+        provides=list(load_tracks(TRACKS_MODULE).values()),
         provides_result=list[TrackI],
     )
 

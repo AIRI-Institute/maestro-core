@@ -78,7 +78,11 @@ class FusionBrainEndpoint(LLMEndpoint):
         }
 
         data = {"pipeline_id": (None, self.pipeline_id), "params": (None, json.dumps(params), "application/json")}
-        response = requests.post(f"{self.base_url}/key/api/v1/pipeline/run", headers=self.auth_headers, files=data)
+        response = requests.post(
+            f"{self.base_url}/key/api/v1/pipeline/run",
+            headers=self.auth_headers,
+            files=data,  # type: ignore[arg-type]
+        )
         if response.status_code >= 400:
             raise RuntimeError(
                 f"Error sending generation request to FusionBrain {response.status_code} {response.reason}"

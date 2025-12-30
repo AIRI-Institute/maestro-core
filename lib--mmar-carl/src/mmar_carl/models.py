@@ -317,7 +317,7 @@ class ReasoningContext(BaseModel):
 
     outer_context: str = Field(..., description="Input data as string (it can be CSV or other text information)")
     api: Any = Field(..., description="API object for LLM execution (EntrypointsAccessor or LLMAccessorAPI)")
-    entrypoint_key: str = Field(default="default", description="Key for the specific entrypoint to use")
+    endpoint_key: str = Field(default="default", description="Key for the specific entrypoint to use")
     retry_max: int = Field(default=3, description="Maximum retry attempts")
     history: list[str] = Field(default_factory=list, description="Accumulated reasoning history")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata and state")
@@ -331,7 +331,7 @@ class ReasoningContext(BaseModel):
         """Create LLM client after model initialization."""
         from .llm import create_llm_client
 
-        self._llm_client = create_llm_client(self.api, self.entrypoint_key)
+        self._llm_client = create_llm_client(self.api, self.endpoint_key)
 
     @property
     def llm_client(self) -> LLMClientBase:
@@ -339,7 +339,7 @@ class ReasoningContext(BaseModel):
         if self._llm_client is None:
             from .llm import create_llm_client
 
-            self._llm_client = create_llm_client(self.api, self.entrypoint_key)
+            self._llm_client = create_llm_client(self.api, self.endpoint_key)
         return self._llm_client
 
     def add_to_history(self, entry: str) -> None:

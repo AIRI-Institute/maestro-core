@@ -54,8 +54,8 @@ class FuncMetadata:
     result_type: type
 
     @cached_property
-    def args_type(self) -> type[tuple]:
-        return tuple[*(am.typehint for am in self.args_metadata)]
+    def args_type(self) -> Any:
+        return tuple[*(am.typehint for am in self.args_metadata)]  # type: ignore[misc]
 
     @cached_property
     def args_adapter(self) -> TypeAdapter:
@@ -259,7 +259,7 @@ def extract_interface_metadatas(interface, only_kw: bool=True) -> Metadatas:
     return metadatas
 
 
-def _extract_obj_methods_metadatas(obj, skip_inherited: bool = True) -> tuple[Methods, Metadatas]:
+def _extract_obj_methods_metadatas(obj, skip_inherited: bool = True) -> tuple[dict[str, Callable], Metadatas]:
     methods, metadatas = {}, {}
     for name, method in inspect.getmembers(obj, predicate=inspect.ismethod):
         if skip_inherited and name not in obj.__class__.__dict__:
@@ -271,7 +271,7 @@ def _extract_obj_methods_metadatas(obj, skip_inherited: bool = True) -> tuple[Me
         if func_metadata:
             methods[name] = method
             metadatas[name] = func_metadata
-    return methods, metadatas
+    return methods, metadatas  # type: ignore[return-value]
 
 
 def _get_interface(obj):

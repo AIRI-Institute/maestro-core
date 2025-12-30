@@ -8,7 +8,7 @@ build:
 	 $(DOC) build
 
 setup-env:
-	mkdir -p data
+	mkdir -p data/maestro
 	cp .env.default data/.env
 	cp llm_config.json.default data/llm_config.json
 

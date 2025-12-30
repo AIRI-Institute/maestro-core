@@ -222,7 +222,7 @@ def create_llm_accessor():
     return ptag_client(LLMAccessorAPI, 40631)
 
 
-async def demonstrate_russian_chain(entrypoints_path: str | None = None, entrypoint_key: str = "default"):
+async def demonstrate_russian_chain(entrypoints_path: str | None = None, endpoint_key: str = "default"):
     """Demonstrate CARL usage with Russian language."""
     print("\n" + "=" * 60)
     print("🇷🇺 RUSSIAN LANGUAGE CHAIN DEMONSTRATION")
@@ -248,7 +248,7 @@ async def demonstrate_russian_chain(entrypoints_path: str | None = None, entrypo
         context = ReasoningContext(
             outer_context=SAMPLE_DATA,
             api=api,
-            entrypoint_key=entrypoint_key,
+            endpoint_key=endpoint_key,
             retry_max=2,
             language=Language.RUSSIAN,
             system_prompt=russian_system_prompt.strip(),
@@ -307,7 +307,7 @@ async def demonstrate_russian_chain(entrypoints_path: str | None = None, entrypo
     # No cleanup needed - entrypoint key is handled cleanly
 
 
-async def demonstrate_english_chain(entrypoints_path: str | None = None, entrypoint_key: str = "default"):
+async def demonstrate_english_chain(entrypoints_path: str | None = None, endpoint_key: str = "default"):
     """Demonstrate CARL usage with English language."""
     print("\n" + "=" * 60)
     print("🇺🇸 ENGLISH LANGUAGE CHAIN DEMONSTRATION")
@@ -334,7 +334,7 @@ Your analysis should:
         context = ReasoningContext(
             outer_context=SAMPLE_DATA,
             api=api,
-            entrypoint_key=entrypoint_key,
+            endpoint_key=endpoint_key,
             retry_max=2,
             language=Language.ENGLISH,
             system_prompt=english_system_prompt.strip(),
@@ -374,7 +374,7 @@ Your analysis should:
         raise
 
 
-async def demonstrate_parallel_execution(entrypoints_path: str | None = None, entrypoint_key: str = "default"):
+async def demonstrate_parallel_execution(entrypoints_path: str | None = None, endpoint_key: str = "default"):
     """Demonstrate parallel execution capabilities."""
     print("\n" + "=" * 60)
     print("🚀 PARALLEL EXECUTION DEMONSTRATION")
@@ -400,7 +400,7 @@ async def demonstrate_parallel_execution(entrypoints_path: str | None = None, en
         context = ReasoningContext(
             outer_context=SAMPLE_DATA,
             api=api,
-            entrypoint_key=entrypoint_key,
+            endpoint_key=endpoint_key,
             retry_max=2,
             language=Language.RUSSIAN,
             system_prompt=parallel_system_prompt.strip(),
@@ -460,7 +460,7 @@ async def demonstrate_parallel_execution(entrypoints_path: str | None = None, en
         raise
 
 
-async def demonstrate_advanced_search(entrypoints_path: str | None = None, entrypoint_key: str = "default"):
+async def demonstrate_advanced_search(entrypoints_path: str | None = None, endpoint_key: str = "default"):
     """Demonstrate advanced per-query search configuration."""
     print("\n" + "=" * 60)
     print("🔍 ADVANCED SEARCH CONFIGURATION DEMONSTRATION")
@@ -488,7 +488,7 @@ Your analysis should:
         context = ReasoningContext(
             outer_context=SAMPLE_DATA,
             api=api,
-            entrypoint_key=entrypoint_key,
+            endpoint_key=endpoint_key,
             retry_max=2,
             language=Language.ENGLISH,
             system_prompt=search_system_prompt.strip(),
@@ -555,21 +555,21 @@ async def main():
 
     # Get entrypoints configuration from command line arguments or environment
     entrypoints_path = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ENTRYPOINTS_PATH")
-    entrypoint_key = sys.argv[2] if len(sys.argv) > 2 else "default"
+    endpoint_key = sys.argv[2] if len(sys.argv) > 2 else "default"
 
     if entrypoints_path:
         print(f"📁 Using entrypoints configuration: {entrypoints_path}")
-        print(f"🔑 Using entrypoint key: {entrypoint_key}")
+        print(f"🔑 Using entrypoint key: {endpoint_key}")
     else:
         print("📁 Searching for entrypoints configuration in default locations...")
-        print(f"🔑 Using default entrypoint key: {entrypoint_key}")
+        print(f"🔑 Using default entrypoint key: {endpoint_key}")
 
     try:
         # Demonstrate different use cases
-        await demonstrate_russian_chain(entrypoints_path, entrypoint_key)
-        await demonstrate_english_chain(entrypoints_path, entrypoint_key)
-        await demonstrate_parallel_execution(entrypoints_path, entrypoint_key)
-        await demonstrate_advanced_search(entrypoints_path, entrypoint_key)
+        await demonstrate_russian_chain(entrypoints_path, endpoint_key)
+        await demonstrate_english_chain(entrypoints_path, endpoint_key)
+        await demonstrate_parallel_execution(entrypoints_path, endpoint_key)
+        await demonstrate_advanced_search(entrypoints_path, endpoint_key)
 
         print("\n" + "=" * 60)
         print("🎉 ALL DEMONSTRATIONS COMPLETED SUCCESSFULLY!")
@@ -588,9 +588,9 @@ async def main():
         print("  🔧 Mixed search strategies within single step")
         print("\n🚀 Ready to integrate with your financial reasoning service!")
         print("\n📖 Usage:")
-        print("  python example.py [entrypoints.json] [entrypoint_key]")
+        print("  python example.py [entrypoints.json] [endpoint_key]")
         print("  ENTRYPOINTS_PATH=entrypoints.json python example.py")
-        print("  ENTRYPOINTS_PATH=entrypoints.json ENTRYPOINT_KEY=my_key python example.py")
+        print("  ENTRYPOINTS_PATH=entrypoints.json endpoint_key=my_key python example.py")
 
     except Exception as e:
         print(f"\n❌ Demonstration failed with error: {e}")

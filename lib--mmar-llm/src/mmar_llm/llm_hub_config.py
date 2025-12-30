@@ -1,17 +1,21 @@
 from collections import defaultdict
 from types import SimpleNamespace
-from typing import Annotated, NotRequired, Protocol
+from typing import Annotated, Protocol
 
 from mmar_mapi.services import LLMEndpointMetadata, LLMHubMetadata
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, ConfigDict
 
-StrDict = dict[str, str | bool | int]
+StrDict = dict[str, str | bool | int | float | dict]
 
 
 class LLMEndpointConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     key: str
     descriptor: str
     caption: str
+    # -1 for disabled
+    concurrency_limit: int = -1
     args: StrDict
     extra: StrDict | None = None
 
@@ -36,14 +40,18 @@ LLMEndpointConfigs = Annotated[list[LLMEndpointConfig], AfterValidator(_validate
 
 
 class LLMConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     endpoints: LLMEndpointConfigs
 
     default_endpoint_key: str = ""
     default_image_endpoint_key: str = ""
     default_file_endpoint_key: str = ""
+    # -1 for disabled
+    default_concurrency_limit: int = -1
 
     warmup: bool = False
-    wait_seconds_on_llm_retry: float = 1.0
+    wait_seconds_on_llm_retry: list[int | float] | int | float = 1.0
 
     def as_metadata(self) -> LLMHubMetadata:
         # we can do `return LLMHubMetadata(**self.model_dump())`, but better to pass manually to ensure that no private data passed
@@ -58,8 +66,6 @@ class LLMConfig(BaseModel):
 
 class LLMHubConfig(Protocol):
     llm: LLMConfig
-    files_dir: NotRequired[str | None] = None
-    validate_endpoints: NotRequired[bool] = True
 
 
 LLM_CONFIG_EMPTY = LLMConfig(endpoints=[])

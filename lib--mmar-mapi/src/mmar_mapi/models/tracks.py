@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from .base import Base
+from mmar_mapi.models.base import Base
 
 
 class TrackInfo(Base):

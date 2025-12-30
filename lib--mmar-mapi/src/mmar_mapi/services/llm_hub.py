@@ -1,11 +1,13 @@
-from typing import Literal
+from typing import Literal, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-from mmar_mapi import ChatMessage
+from mmar_mapi import ChatMessage, BaseMessage
 
 
 class LLMCallProps(BaseModel, frozen=True):
+    model_config = ConfigDict(extra="forbid")
+
     endpoint_key: str = ""
     attempts: int = 1
 
@@ -17,14 +19,15 @@ LCP = LLMCallProps()
 ResourceId = str
 FileId = str
 Attachments = list[list[ResourceId]]
+Role = Literal["system", "assistant", "user"]
 
 
 class Message(BaseModel, frozen=True):
-    role: Literal["system", "assistant", "user"]
+    role: Role
     content: str
 
     @staticmethod
-    def create(message: ChatMessage) -> "Message":
+    def create(message: ChatMessage) -> "Message | None":
         return _create_message(message=message)
 
     def get_content(self):
@@ -32,8 +35,9 @@ class Message(BaseModel, frozen=True):
 
 
 def _create_message(message: ChatMessage) -> Message | None:
-    role = "assistant" if message.is_ai else "user" if message.is_human else None
-    return Message(role=role, content=message.text) if role else None
+    msg = cast(BaseMessage, message)
+    role: Role | None = "assistant" if msg.is_ai else "user" if msg.is_human else None
+    return Message(role=role, content=msg.text) if role else None
 
 
 class Messages(BaseModel, frozen=True):
@@ -54,7 +58,7 @@ class LLMPayload(Messages, frozen=True):
         parts = [
             f"messages: {len(self.messages)}",
             f"total size: {total_size}" if detailed else None,
-            self.attachments and "has attachments",
+            "has attachments" if self.attachments else None,
         ]
         payload_pretty = ", ".join(filter(None, parts))
         return f"LLMPayload({payload_pretty})"

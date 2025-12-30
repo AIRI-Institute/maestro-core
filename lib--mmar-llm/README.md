@@ -1,31 +1,44 @@
 # mmar-llm
 
-## how to run tests via pytest
-1. Create `.env` in current directory.
+Library to access different LLM's via common API:
+- GigaChat
+- OpenRouter
+- ..
 
-Example:
-```env
-llm_config_path=/mnt/data/envs/creds/llm_config.json
-test_endpoint_keys=["giga-max-sberai","gemini", "giga-max-fin-aifa", "airi-giga"]
-test_endpoint_keys_embeddings=["embeddings", "giga-max-fin-aifa"]
-test_endpoint_keys_files=["giga-max-fin-aifa", "airi-giga"]
+## Usage
+### Create `llm_config.json` with llm-endpoints:
+```js
+{
+  "default_endpoint_key": "endpoint_key",
+  "warmup": true,
+  "wait_seconds_on_llm_retry": [1, 2, 4, 4, 4],
+  "endpoints": [
+    {
+      "key": "endpoint_key",
+      "caption": "GigaChat MAX 2",
+      "descriptor": "gigachat",
+      "args": {
+		"authorization_key": "MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwOjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMA=="
+      }
+    },
+	...
+  ]
+}
 ```
+### Create llm-hub:
+```python
+from pathlib import Path
+from types import SimpleNamespace
+
+from mmar_llm import LLMConfig, LLMHub
 
 
-2. Run:
-- `pytest` :: to run all tests
-- `pytest -s` :: to run all tests and show logs
-- `pytest --stepwise` :: to stop on first fail
-- `pytest -k airi` :: to filter tests which have `airi` as substring
-- `pytest -k 'not airi'` :: to filter tests which **have not** `airi` as substring
-- `pytest -k airi -k file` :: many filters supported
-- `pytest -k aifa -k file --collect-only` :: just show generated filtered tests, without running
+def create_llm_hub(llm_config_path: str, tmp_path: str | None = None):
+    llm_config = LLMConfig.model_validate_json(Path(llm_config_path).read_text())
+    llm_hub_config = SimpleNamespace(llm=llm_config, files_dir=tmp_path)
+    llm_hub = LLMHub(llm_hub_config)
+    return llm_hub
 
-Output:
-```text
-<Dir mmar-llm>
-  <Package tests>
-    <Module test_get_response.py>
-      <Function test_get_response_with_file[giga-max-fin-aifa]>
-        <Function test_get_response_with_file[airi-giga]>
+lh = create_llm_hub('/path/to/llm_config.json')
+print(lh.get_response(request='What is your name?'))
 ```

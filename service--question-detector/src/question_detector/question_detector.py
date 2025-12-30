@@ -13,7 +13,7 @@ QUESTION_DETECTOR = "question-detector"
 
 class QuestionDetector(BinaryClassifiersAPI):
     def __init__(self, config: Config):
-        llm_hub = ptag_client(LLMHubAPI, config.llm.address)
+        llm_hub = ptag_client(LLMHubAPI, config.addresses.llm_hub)
 
         self.giga_embedding = GigaEmbedding(config, llm_hub)
         self.question_mark = QuestionMarkCheck()

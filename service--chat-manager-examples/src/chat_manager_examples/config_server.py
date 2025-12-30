@@ -1,6 +1,7 @@
-from mmar_mimpl import SettingsModel
 from mmar_ptag import LogLevelEnum
 from pydantic import BaseModel, Field
+
+from mmar_mimpl import SettingsModel
 
 
 class LoggerConfig(BaseModel):

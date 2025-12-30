@@ -1,8 +1,7 @@
-from mmar_mapi import Chat, FileStorage, HumanMessage
-from mmar_mapi.services import DocumentExtractorAPI, DocExtractionOutput
-from mmar_mapi.tracks import SimpleTrack, TrackResponse
-
 from chat_manager_examples.config import DOMAINS
+from mmar_mapi import Chat, FileStorage, HumanMessage
+from mmar_mapi.services import DocExtractionOutput, DocumentExtractorAPI
+from mmar_mapi.tracks import SimpleTrack, TrackResponse
 
 
 class DocumentDescriber(SimpleTrack):
@@ -25,6 +24,8 @@ class DocumentDescriber(SimpleTrack):
         user_resource_id = user_message.resource_id
         if user_resource_id:
             user_file_path = self.file_storage.get_path(user_resource_id)
+            if user_file_path is None:
+                return "File path not found"  # type: ignore[return-value]
             r_ext = user_file_path.suffix
             if r_ext == ".pdf":
                 r_content_rid = self.document_extractor.extract(resource_id=user_resource_id)
@@ -32,10 +33,10 @@ class DocumentDescriber(SimpleTrack):
                     r_content = self.file_storage.download_text(r_content_rid)
                     extraction_output = DocExtractionOutput.model_validate_json(r_content)
                     extracted_text = extraction_output.text
-                    return f"Распознанное содержимое:\n```\n{extracted_text}\n```"
+                    return f"Распознанное содержимое:\n```\n{extracted_text}\n```"  # type: ignore[return-value]
                 else:
-                    return "Не удалось распознать содержимое"
+                    return "Не удалось распознать содержимое"  # type: ignore[return-value]
             else:
-                return "Поддерживаются только файлы с расширением pdf"
+                return "Поддерживаются только файлы с расширением pdf"  # type: ignore[return-value]
         else:
-            return "Пришлите файл"
+            return "Пришлите файл"  # type: ignore[return-value]

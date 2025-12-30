@@ -54,7 +54,7 @@ class StateActionPolicyTrack(TrackI):
         cur_state = bot_message.state
         # todo implement moderation
         logger.info(f"State transition: '{prev_state}' -> '{cur_state}', action: '{action}'")
-        return messages
+        return messages  # type: ignore[return-value]
 
     @abstractmethod
     def select_state(self, chat: Chat, user_message: HumanMessage) -> str:
@@ -81,10 +81,10 @@ class SimpleTrack(TrackI):
         if isinstance(response, tuple) and len(response) == 2:
             state: str = response[0]
             content: Content = response[1]
-            messages = [AIMessage(state=state, content=content)]
+            messages = [AIMessage(state=state, content=content, extra=None)]
         elif isinstance(response, str):
             state, content = "", response
-            messages = [AIMessage(state=state, content=content)]
+            messages = [AIMessage(state=state, content=content, extra=None)]
         elif isinstance(response, AIMessage):
             state = response.state
             messages = [response]
@@ -104,7 +104,7 @@ class SimpleTrack(TrackI):
 
         track_id = chat.context.track_id
         logger.info(f"Track {track_id}: state transition: '{chat.get_last_state()}' -> '{state}'")
-        return messages
+        return messages  # type: ignore[return-value]
 
     @abstractmethod
     def generate_response(self, chat: Chat, user_message: HumanMessage) -> TrackResponse:
@@ -112,4 +112,4 @@ class SimpleTrack(TrackI):
 
 
 def load_tracks(tracks_module) -> dict[str, TrackI]:
-    return load_main_objects(tracks_module, TrackI)
+    return load_main_objects(tracks_module, TrackI)  # type: ignore[return-value]

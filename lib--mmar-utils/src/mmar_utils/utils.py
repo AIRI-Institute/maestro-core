@@ -1,6 +1,7 @@
 import json
 import os
 from collections.abc import Iterable
+from functools import wraps
 from pathlib import Path
 
 
@@ -56,3 +57,10 @@ def noop(*args, **kwargs):
 
 async def anoop(*args, **kwargs):
     pass
+
+
+def noop_decorator(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        return fn(*args, **kwargs)
+    return wrapper

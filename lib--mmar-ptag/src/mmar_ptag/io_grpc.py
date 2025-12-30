@@ -5,8 +5,8 @@ from typing import Any, Callable, Protocol, Type
 import grpc
 from loguru import logger
 
-from .logging_configuration import LogLevelEnum, init_logger
-from .ptag_framework import ptag_attach
+from mmar_ptag.logging_configuration import LogLevelEnum, init_logger
+from mmar_ptag.ptag_framework import ptag_attach
 
 
 class ConfigLogger(Protocol):
@@ -32,6 +32,7 @@ def deploy_server(
     config_server: ConfigServer | Callable[[], ConfigServer],
     service: Any | Callable[..., Any] | Type,
     config: Any | Callable[[], Any] | None = None,
+    initialize_logger: bool = True
 ) -> None:
     # normalize config_server and config if they are callables
     if callable(config_server):
@@ -48,7 +49,8 @@ def deploy_server(
 
     # logging setup and server start
     level = getattr(config_server, "logger", CONFIG_LOGGER_DEFAULT).level
-    init_logger(level)
+    if initialize_logger:
+        init_logger(level)
     logger.debug(f"Config server: {repr(config_server)}")
     logger.debug(f"Config: {repr(config)}")
 

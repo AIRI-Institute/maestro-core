@@ -7,7 +7,7 @@ class DummyEndpoint(LLMEndpoint):
     """for tests"""
 
     def get_response_ext(self, *, request: LLMRequest) -> LLMResponseExt:
-        return f"Request: {request}"
+        return LLMResponseExt(text=f"Request: {request}")
 
     def get_embedding(self, *, prompt: str) -> list[float]:
         return [1, 2, 3]

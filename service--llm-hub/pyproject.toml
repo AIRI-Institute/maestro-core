@@ -10,9 +10,9 @@ dependencies = [
     "pydantic~=2.12.5",
     "pydantic-settings~=2.12.0",
 
-    "mmar-llm~=2.0.8",
+    "mmar-llm~=2.0.11",
     "mmar-mapi~=1.4.3",
-    "mmar-ptag~=1.0.16",
+    "mmar-ptag~=1.0.18",
     "mmar-utils~=1.1.11",
     "mmar-mimpl~=1.0.1",
 ]

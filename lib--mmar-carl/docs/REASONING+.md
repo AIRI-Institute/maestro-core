@@ -78,7 +78,7 @@ from mmar_llm import EntrypointsAccessor
 context = ReasoningContext(
     outer_context=input_data,  # Исходные данные для анализа
     api=entrypoints,   # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max",     # Ключ точки входа LLM
+    endpoint_key="gigachat-2-max",     # Ключ точки входа LLM
     language=Language.RUSSIAN,  # Язык рассуждений
     retry_max=3                # Максимальное количество повторов при ошибках
 )
@@ -256,7 +256,7 @@ step = StepDescription(
 context_ru = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max",
+    endpoint_key="gigachat-2-max",
     language=Language.RUSSIAN
 )
 
@@ -264,7 +264,7 @@ context_ru = ReasoningContext(
 context_en = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max",
+    endpoint_key="gigachat-2-max",
     language=Language.ENGLISH
 )
 ```
@@ -291,7 +291,7 @@ entrypoints = create_entrypoints("entrypoints.json")
 context = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max"
+    endpoint_key="gigachat-2-max"
 )
 ```
 
@@ -397,7 +397,7 @@ financial_system_prompt = """
 context = ReasoningContext(
     outer_context=financial_data,
     api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max",
+    endpoint_key="gigachat-2-max",
     language=Language.RUSSIAN,
     retry_max=3,
     system_prompt=financial_system_prompt.strip()

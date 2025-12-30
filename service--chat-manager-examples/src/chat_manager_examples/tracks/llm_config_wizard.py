@@ -1,15 +1,15 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
+
+from chat_manager_examples.config import DOMAINS
 from mmar_llm import LLMConfig, LLMEndpointConfig
 from mmar_mapi import AIMessage, Chat, HumanMessage, make_content
 from mmar_mapi.models.widget import Widget
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
 
-from chat_manager_examples.config import DOMAINS
-
-STATES = [
+STATES = [  # type: ignore[misc]
     "EMPTY",  # Initial state
     "CHOOSE_PROVIDER",  # Choosing provider type
     "GIGACHAT_BASE_URL",  # Entering GigaChat BASE_URL
@@ -28,7 +28,7 @@ STATES = [
     "FINAL_DEFAULT_ENDPOINT",  # Setting default endpoint
     "FINAL",
 ]
-S = StrEnum("State", STATES)
+S = cast(StrEnum, StrEnum("State", STATES))
 
 GIGACHAT_DEFAULT_KEY = "giga-max-2"
 
@@ -37,9 +37,9 @@ class LLMConfigWizard(SimpleTrack):
     DOMAIN = DOMAINS.examples
     CAPTION = "🧙‍♂️🤖 LLM Config Wizard"
 
-    def __init__(self):
+    def __init__(self) -> None:
         # todo eliminate hotfixes: track should be stateless
-        self.last_session_id = None
+        self.last_session_id: str | None = None
         self.collected_endpoints: list[dict[str, Any]] = []
         self.current_endpoint: dict[str, Any] = {}
 
@@ -173,21 +173,21 @@ class LLMConfigWizard(SimpleTrack):
         # Finalization
         elif state == S.FINAL_DEFAULT_ENDPOINT:
             default_key = text or self.collected_endpoints[0]["key"]
-            endpoints_dict = {ep["key"]: LLMEndpointConfig(**ep) for ep in self.collected_endpoints}
+            endpoints_list = [LLMEndpointConfig(**ep) for ep in self.collected_endpoints]
             config = LLMConfig(
-                endpoints=endpoints_dict,
+                endpoints=endpoints_list,
                 default_endpoint_key=default_key,
                 warmup=False,
             )
-            return S.FINAL, config.model_dump_json(indent=2)
+            return S.FINAL, config.model_dump_json(indent=2)  # type: ignore[attr-defined]
 
         elif state == S.FINAL:
             return S.FINAL, "Exit"
 
         # Fallback
-        return S.FINAL, "Invalid input. Exit"
+        return S.FINAL, "Invalid input. Exit"  # type: ignore[attr-defined]
 
-    def _create_provider_selection(self, text=None) -> dict:
+    def _create_provider_selection(self, text=None) -> TrackResponse:
         text = text or f"Total configured endpoints: {len(self.collected_endpoints)}. What would you like to configure?"
         return make_content(text=text, widget=Widget.make_buttons(["Gigachat", "OpenRouter", "Exit"]))
 

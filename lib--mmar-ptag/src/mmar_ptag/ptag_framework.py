@@ -115,7 +115,8 @@ class WrappedPTAGService(PTAGServiceServicer):
             input_kwargs = dict(zip(input_names, input_obj))
 
             with installed_trace_id(trace_id=trace_id):
-                output_obj = method(**input_kwargs)
+                with logger.contextualize(trace_id=trace_id):
+                    output_obj = method(**input_kwargs)
 
             payload = result_adapter.dump_json(output_obj)
             return PTAGResponse(FunctionName=method_name, Payload=payload)
@@ -182,7 +183,8 @@ class ClientProxy(Generic[T]):
             bound_func = types.MethodType(proxy_wrapped, self)
             setattr(self, mm.name, bound_func)
 
-    def _reconnect(self):
+    # fix, there is 2 responsibilities now: reconnect and return method
+    def _reconnect(self, method_name):
         try:
             self._channel.close()
         except Exception:
@@ -190,16 +192,23 @@ class ClientProxy(Generic[T]):
         self._channel, self._stub = self.channel_stub_func(self.address)
         self._set_proxy_methods()
         logger.info(f"Reconnected on {self.address}...")
+        return getattr(self, method_name)
 
     def _wrap_method_with_reconnect(self, raw_method):
         def wrapped(proxy_self, *args, **kwargs):
             try:
                 return raw_method(proxy_self, *args, **kwargs)
-            except RpcError as e:
-                if e.code() == StatusCode.UNAVAILABLE:
-                    logger.error(f"ERROR: [{e.details()}], reconnecting...")
-                    proxy_self._reconnect()
-                    return raw_method(proxy_self, *args, **kwargs)
+            except RpcError as ex:
+                if ex.code() == StatusCode.UNAVAILABLE:
+                    logger.error(f"ERROR: [{ex.details()}], reconnecting...")
+                    fresh_method = proxy_self._reconnect(raw_method.__name__)
+                    return fresh_method(*args, **kwargs)
+                raise
+            except ValueError as ex:
+                if str(ex) == 'Cannot invoke RPC on closed channel!':
+                    logger.error(f"ERROR: [{ex}], reconnecting...")
+                    fresh_method = proxy_self._reconnect(raw_method.__name__)
+                    return fresh_method(*args, **kwargs)
                 raise
 
         return wrapped

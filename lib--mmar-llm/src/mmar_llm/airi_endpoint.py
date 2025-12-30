@@ -14,8 +14,9 @@ class AiriChatEndpoint(OpenRouterEndpoint):
         api_key: str = "",
         emb_dim: int = 1024,
         verify: bool = True,
+        extra_create_args: dict | None = None
     ) -> None:
-        super().__init__(model_id=model_id, base_url=base_url, api_key=api_key, emb_dim=emb_dim, verify=False)
+        super().__init__(model_id=model_id, base_url=base_url, api_key=api_key, emb_dim=emb_dim, verify=False, extra_create_args=extra_create_args)
         self.api_key = api_key
         self.verify = verify
         # todo fix: move in warmup?

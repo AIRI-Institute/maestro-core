@@ -2,6 +2,8 @@ from mmar_mapi.services import LLMRequest, LLMResponseExt
 
 
 class LLMEndpoint:
+    _key: str | None
+
     def get_response_ext(self, *, request: LLMRequest) -> LLMResponseExt:
         raise NotImplementedError
 

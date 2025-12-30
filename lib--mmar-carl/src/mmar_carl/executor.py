@@ -222,7 +222,7 @@ class DAGExecutor:
             snapshot = ReasoningContext(
                 outer_context=context.outer_context,
                 api=context.api,
-                entrypoint_key=context.entrypoint_key,
+                endpoint_key=context.endpoint_key,
                 retry_max=context.retry_max,
                 history=context.history.copy(),
                 metadata=context.metadata.copy(),

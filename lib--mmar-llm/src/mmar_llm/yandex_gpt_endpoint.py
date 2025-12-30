@@ -25,7 +25,7 @@ class YandexGPTEndpoint(LLMEndpoint):
         ).json()["iamToken"]
         self.folder_id = folder_id
         self.text_url = text_url
-        self.emb_url = (emb_url,)
+        self.emb_url = emb_url
         self.doc_uri = f"emb://{self.folder_id}/text-search-doc/latest"
         self.query_uri = f"emb://{self.folder_id}/text-search-query/latest"
         self.headers = {
@@ -35,6 +35,7 @@ class YandexGPTEndpoint(LLMEndpoint):
         self._DIM: int = 256
         self._ZEROS: list[float] = [0 for _ in range(self._DIM)]
         self._ERROR_MESSAGE: str = ""
+        self._input_is_long: bool = False
         if warmup:
             self.warmup()
 
@@ -62,4 +63,10 @@ class YandexGPTEndpoint(LLMEndpoint):
         return self._ZEROS
 
     def get_embeddings(self, sentences: list[str], input_is_long: bool = False) -> list[list[float]]:
-        return [self.get_embedding(sentence, input_is_long) for sentence in sentences]
+        return [self.get_embedding_custom(sentence, input_is_long) for sentence in sentences]
+
+    def warmup(self) -> None:
+        pass
+
+    def get_embedding(self, *, prompt: str) -> list[float]:
+        return self.get_embedding_custom(prompt, self._input_is_long)

@@ -12,4 +12,4 @@ class SettingsModel(BaseSettings):
     @classmethod
     def load(cls, env_file=None) -> "SettingsModel":
         env_file = env_file or os.getenv(ENV_FILE)
-        return cls(_env_file=env_file)
+        return cls(_env_file=env_file)  # type: ignore[call-arg]

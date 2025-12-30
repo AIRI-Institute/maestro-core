@@ -72,7 +72,7 @@ K = TypeVar("K", bound=str)
 
 class Prompt:
     # use inside pydantic models: prompt: Prompt['base_context']
-    def __class_getitem__(cls, keys: K | tuple[K, ...]) -> type[str]:
+    def __class_getitem__(cls, keys: K | tuple[K, ...]) -> Any:
         if isinstance(keys, tuple):
             keys_tuple = keys
         else:
@@ -85,7 +85,7 @@ class Prompt:
         return Annotated[str, AfterValidator(validate_keys(*keys_tuple))]
 
 
-PromptBaseContext = Prompt["base_context"]
+PromptBaseContext = Prompt["base_context"]  # type: ignore[misc,type-arg,name-defined]
 
 
 def validate_no_underscores(text: str) -> str:

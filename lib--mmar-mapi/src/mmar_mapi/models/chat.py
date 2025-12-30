@@ -1,15 +1,14 @@
 import warnings
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypeVar
+from typing import Any, Literal, NotRequired, TypeVar, cast
 
 from pydantic import Field
 from typing_extensions import TypedDict
 
+from mmar_mapi.models.base import Base
 from mmar_mapi.models.widget import Widget
 from mmar_mapi.type_union import TypeUnion
-
-from .base import Base
 
 _DT_FORMAT: str = "%Y-%m-%d-%H-%M-%S"
 _EXAMPLE_DT: str = datetime(year=1970, month=1, day=1).strftime(_DT_FORMAT)
@@ -42,11 +41,11 @@ def now_pretty() -> str:
 
 
 class Context(Base):
-    client_id: str = Field("", examples=["543216789"])
-    user_id: str = Field("", examples=["123456789"])
+    client_id: str = Field(default="", examples=["543216789"])
+    user_id: str = Field(default="", examples=["123456789"])
     session_id: str = Field(default_factory=now_pretty, examples=["987654321"])
-    track_id: str = Field("", examples=["Hello"])
-    extra: StrDict | None = Field(None, examples=[None])
+    track_id: str = Field(default="", examples=["Hello"])
+    extra: StrDict | None = Field(default=None, examples=[None])
 
     def create_id(self, short: bool = False) -> str:
         uid, sid, cid = self.user_id, self.session_id, self.client_id
@@ -130,9 +129,9 @@ def _get_resource_name(obj: Content) -> str | None:
 
 def _get_resource(obj: Content) -> ResourceDict | None:
     if isinstance(obj, list):
-        return next((el for el in map(_get_resource_id, obj) if el), None)
+        return next((el for el in map(_get_resource, obj) if el), None)
     if isinstance(obj, dict) and obj.get("type") == "resource_id":
-        return obj
+        return obj  # type: ignore[return-value]
     return None
 
 
@@ -179,7 +178,7 @@ class BaseMessage(Base):
         return res
 
     @property
-    def resource(self) -> dict | None:
+    def resource(self) -> ResourceDict | None:
         return _get_resource(self.content)
 
     @property
@@ -218,7 +217,7 @@ class BaseMessage(Base):
 
     @staticmethod
     def has_state(msg: "BaseMessage", state: str) -> Any | None:
-        if not msg.is_ai:
+        if not isinstance(msg, AIMessage):
             return None
         return msg if msg.state == state else None
 
@@ -243,7 +242,7 @@ class MiscMessage(BaseMessage):
     type: Literal["misc"] = "misc"
 
 
-ChatMessage = TypeUnion[HumanMessage, AIMessage, MiscMessage]
+ChatMessage = TypeUnion[HumanMessage, AIMessage, MiscMessage]  # type: ignore[type-arg]
 
 
 def find_in_messages(messages: list[ChatMessage], func: Callable[[ChatMessage], T | None]) -> T | None:
@@ -251,7 +250,7 @@ def find_in_messages(messages: list[ChatMessage], func: Callable[[ChatMessage], 
 
 
 class Chat(Base):
-    context: Context = Field(default_factory=Context)
+    context: Context = Field(default_factory=lambda: Context())
     messages: list[ChatMessage] = Field(default_factory=list)
 
     model_config = {"extra": "ignore"}

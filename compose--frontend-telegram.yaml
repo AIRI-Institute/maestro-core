@@ -1,0 +1,14 @@
+x-common: &common
+  networks: [network]
+  restart: "no"
+  volumes: ["./data:/mnt/data"]
+  environment:
+    TZ: Europe/Moscow
+    ENV_FILE: /mnt/data/.env
+networks: {network: {driver: bridge, name: "network-maestro-core"}}
+
+services:
+  frontend-telegram:
+    build: {context: ./service--frontend-telegram}
+    image: maestro-core--frontend-telegram
+    <<: *common

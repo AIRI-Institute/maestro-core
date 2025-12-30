@@ -1,0 +1,62 @@
+[project]
+name = "telegram-b2c"
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "python-telegram-bot==21.10",
+    "emoji==2.12.1",
+    "pydantic~=2.12.5",
+    "pydantic-settings~=2.12.0",
+    "loguru~=0.7.2",
+    "telethon==1.38.1",
+
+    "mmar-ptag~=1.0.18",
+    "mmar-mapi~=1.4.2",
+    "mmar-utils~=1.1.15",
+    "mmar-mcli~=1.0.10",
+    "mmar-mimpl~=1.0.1",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+       "ANN", # type annotations
+       "I", # imports
+       "F", # undefined names
+]
+ignore = [
+       "ANN204", # ignoring `__init__(self, ...) -> None`
+       "ANN401", # ignoring `: typing.Any`
+]
+
+
+[pytest]
+required_plugins = [
+    "pytest-asyncio>=1.0.0",
+]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+pretty = true
+show_error_codes = true
+strict_optional = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[tool.uv.sources]
+mypackage = { path = "src" }
+
+[tool.pytest.ini_options]
+pythonpath = [ "src" ]
+asyncio_mode = "auto"
+

@@ -31,6 +31,7 @@ def load_file(path_field: str):
     return BeforeValidator(validator)
 
 
+# todo eliminate
 class LoadPydanticModel(Generic[T, P]):
     """
     Usage example:

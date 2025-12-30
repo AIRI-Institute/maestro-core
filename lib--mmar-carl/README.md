@@ -85,7 +85,7 @@ Period,Revenue,Profit,Employees
 context = ReasoningContext(
     outer_context=data_context,
     api=entrypoints,  # Automatic LLM client detection
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH,
     retry_max=3,
     system_prompt="You are a senior data analyst with expertise in financial data interpretation."
@@ -110,7 +110,7 @@ entrypoints = EntrypointsAccessor(config)
 context = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Automatically creates EntrypointsAccessorLLMClient
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH
 )
 
@@ -119,7 +119,7 @@ llm_api = LLMAccessorAPI()
 context = ReasoningContext(
     outer_context=data,
     api=llm_api,  # Automatically creates LLMAccessorClient
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH
 )
 
@@ -128,7 +128,7 @@ ptag_client_instance = ptag_client(LLMAccessorAPI, "localhost:50051")
 context = ReasoningContext(
     outer_context=data,
     api=ptag_client_instance,  # Automatically detects and creates LLMAccessorClient
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH
 )
 ```
@@ -163,7 +163,7 @@ Your analysis should:
 context = ReasoningContext(
     outer_context=financial_data,
     api=entrypoints,
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH,
     system_prompt=financial_system_prompt.strip()
 )
@@ -292,7 +292,7 @@ Built-in support for Russian and English with appropriate prompt templates:
 context = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Automatic LLM client detection
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.RUSSIAN,
     system_prompt="Вы экспертный финансовый аналитик с профессиональным опытом."
 )
@@ -301,7 +301,7 @@ context = ReasoningContext(
 context = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # Automatic LLM client detection
-    entrypoint_key="my_entrypoint",
+    endpoint_key="my_endpoint",
     language=Language.ENGLISH,
     system_prompt="You are an expert financial analyst with professional experience."
 )
@@ -428,14 +428,14 @@ from mmar_mapi.api import LLMAccessorAPI
 context = ReasoningContext(
     outer_context=data,
     api=entrypoints,  # EntrypointsAccessor - creates EntrypointsAccessorLLMClient
-    entrypoint_key="my_entrypoint"
+    endpoint_key="my_endpoint"
 )
 
 # Also works with LLMAccessorAPI
 context = ReasoningContext(
     outer_context=data,
     api=llm_api,  # LLMAccessorAPI - creates LLMAccessorClient
-    entrypoint_key="my_entrypoint"
+    endpoint_key="my_endpoint"
 )
 ```
 
@@ -459,7 +459,7 @@ Run it with:
 export ENTRYPOINTS_PATH=/path/to/your/entrypoints.json
 
 # Run the demonstration
-python example.py entrypoints.json my_entrypoint_key
+python example.py entrypoints.json my_endpoint_key
 
 # Or run with environment variable
 ENTRYPOINTS_PATH=entrypoints.json python example.py

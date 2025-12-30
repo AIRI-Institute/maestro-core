@@ -1,4 +1,5 @@
 from loguru import logger
+
 from mmar_mapi import AIMessage, Chat, ChatMessage, DomainInfo, TrackInfo
 from mmar_mapi.services import ChatManagerAPI
 from mmar_mapi.tracks import TrackI
@@ -14,12 +15,19 @@ class ChatManagerExamples(ChatManagerAPI):
         self.no_such_track = AIMessage(content=no_such_track_text)
 
     def get_domains(self, *, client_id: str, language_code: str = "ru") -> list[DomainInfo]:
-        domains = [DomainInfo(domain_id=did, name=name) for did, name in self.domains_captions.items()]
+        domains = [
+            DomainInfo.model_validate({"domain_id": did, "name": name}) for did, name in self.domains_captions.items()
+        ]
         logger.info(f"#get_domains({language_code=}, {client_id=}) -> {domains}")
         return domains
 
     def get_tracks(self, *, client_id: str, language_code: str = "ru") -> list[TrackInfo]:
-        tracks = [TrackInfo(track_id=tid, name=tr.CAPTION, domain_id=tr.DOMAIN) for tid, tr in self.tracks_map.items()]
+        tracks = [
+            TrackInfo.model_validate(
+                {"track_id": tid, "name": getattr(tr, "CAPTION", "???"), "domain_id": getattr(tr, "DOMAIN", "???")}
+            )
+            for tid, tr in self.tracks_map.items()
+        ]  # type: ignore[attr-defined]
         logger.info(f"#get_tracks({client_id=}, {language_code=}) -> {tracks}")
         return tracks
 

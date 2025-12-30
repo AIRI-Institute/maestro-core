@@ -3,17 +3,17 @@ import traceback
 import warnings
 from datetime import UTC
 from datetime import datetime as dt
-from typing import Any, Callable, Literal
+from typing import Any, Callable
 
 from pydantic import BaseModel, field_serializer
 
-from .mmar_types import Either, Result
+from .mmar_types import Either
 from .utils_inspect import bind_args_to_dict, bind_args_to_tuple, extract_func_metadata
 
 FunInput = dict | tuple | bytes | str
 FunOutput = str | bytes | dict | BaseModel
-InputType = Literal[dict, tuple, bytes] | Callable
-OutputType = Literal[Any, str, bytes] | Callable
+InputType = type | Callable
+OutputType = Any
 
 
 class ExceptionInfo(BaseModel):
@@ -52,7 +52,7 @@ def transform_fun_input(fn_metadata, *, args, kwargs, input_as: InputType, valid
         res = bind_args_to_dict(**bind_kwargs)
     elif input_as is tuple:
         res = bind_args_to_tuple(**bind_kwargs)
-    elif isinstance(input_as, callable):
+    elif callable(input_as):
         res = input_as(args, kwargs)
     else:
         raise ValueError(f"Unsupported input_as: {input_as}")
@@ -81,7 +81,7 @@ def trace_with(
     output_as: OutputType = Any,
     validate_ext: bool = False,
 ):
-    def decorator(fn: Callable[[...], Result]):
+    def decorator(fn: Callable):  # type: ignore[misc]
         ns = namespace or fn.__qualname__
 
         def run_spy(fun_enter, fun_invocation: FunctionInvocation | None):

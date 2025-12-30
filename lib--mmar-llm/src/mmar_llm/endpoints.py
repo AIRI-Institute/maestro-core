@@ -23,7 +23,7 @@ ALIASES = [getattr(ep, "ALIAS", None) for ep in ENDPOINTS]
 ALIASES_MAP = {alias: ep for alias, ep in zip(ALIASES, ENDPOINTS) if alias}
 
 
-def find_llm_endpoint(descriptor: str) -> LLMEndpoint | None:
+def find_llm_endpoint(descriptor: str) -> type[LLMEndpoint] | None:
     try:
         return load_dynamically(descriptor)
     except Exception:

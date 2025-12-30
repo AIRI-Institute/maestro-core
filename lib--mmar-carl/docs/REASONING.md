@@ -132,8 +132,8 @@ medical_system_prompt = """
 
 context = ReasoningContext(
     outer_context=patient_data,
-    api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    entrypoint_key="gigachat-2-max",
+    api=endpoint_key,  # Автоматическое определение типа и создание LLM клиента
+    endpoint_key="gigachat-2-max",
     language=Language.RUSSIAN,
     retry_max=3,
     system_prompt=medical_system_prompt.strip()

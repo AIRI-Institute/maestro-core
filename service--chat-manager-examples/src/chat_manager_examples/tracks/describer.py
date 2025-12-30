@@ -1,23 +1,24 @@
 from pathlib import Path
 
 from loguru import logger
+
+from chat_manager_examples.config import DOMAINS
 from mmar_mapi import Chat, FileStorage, HumanMessage
 from mmar_mapi.services import BinaryClassifiersAPI, LLMHubAPI, TextExtractorAPI
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
 from mmar_utils import pretty_prefix
-
-from chat_manager_examples.config import DOMAINS
 
 OUT_PREFIX_SIZE = 4000
 
 
 def get_pretty_size(size_bytes: int) -> str:
     """Convert bytes to human readable format"""
+    size = float(size_bytes)
     for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if size_bytes < 1024.0:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024.0
-    return f"{size_bytes:.1f} PB"
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} PB"
 
 
 def get_text_safe(fpath: Path) -> str | None:
@@ -30,7 +31,7 @@ def get_text_safe(fpath: Path) -> str | None:
 
 def is_textual(fpath, blocksize=4096):
     try:
-        with open(fpath, "r") as fin:
+        with fpath.open() as fin:
             fin.read(blocksize)
         return True
     except Exception:
@@ -75,6 +76,8 @@ class Describer(SimpleTrack):
         user_resource_id = user_message.resource_id
         if user_resource_id:
             user_file_path = self.file_storage.get_path(user_resource_id)
+            if user_file_path is None:
+                return "File path not found"  # type: ignore[return-value]
             r_name = self.file_storage.get_fname(user_resource_id)
             r_size = user_file_path.stat().st_size
             response_resource_id_parts = [
@@ -98,4 +101,4 @@ class Describer(SimpleTrack):
             response_resource_id = None
 
         response = "\n".join(filter(None, [response_text, response_resource_id]))
-        return response
+        return response  # type: ignore[return-value]

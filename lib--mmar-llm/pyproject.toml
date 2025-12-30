@@ -1,7 +1,7 @@
 [project]
 name = "mmar-llm"
 # dynamic version is not supported yet on uv_build
-version = "2.0.8"
+version = "2.0.12"
 description = "llm wrappers for multimodal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -32,7 +32,7 @@ dependencies = [
     "loguru~=0.7.3",
 
     "mmar-mapi~=1.4.2",
-    "mmar-utils~=1.1.11",
+    "mmar-utils~=1.1.15",
 ]
 
 [build-system]
@@ -44,18 +44,20 @@ module-name = "mmar_llm"
 source-exclude = [".ruff_cache"]
 
 [dependency-groups]
-ci = [
+dev = [
     "ruff>=0.4",
     "pytest>=8.2",
     "numpy==2.1.*",
     "Pillow==11.1.0",
     "mmar-utils~=1.1.0",
+    "mmar-ptag~=1.0.16",
     "pydantic~=2.12.5",
     "pydantic_settings",
+    "fire~=0.7.0",
 ]
 
 [tool.uv]
-default-groups = ["ci"]
+default-groups = ["dev"]
 
 [tool.ruff]
 line-length = 120
@@ -64,8 +66,15 @@ line-length = 120
 python_files = [ "test_*.py" ]
 testpaths = [ "tests" ]
 
+[tool.pytest.ini_options]
+markers = ["api"]
+
 # action:message_regex:warning_class:module_regex:line
 filterwarnings = [ "error" ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports
+ban-relative-imports = "all" 
 
 [mypy]
 ignore_missing_imports = true

@@ -1,6 +1,6 @@
 [project]
 name = "mmar-utils"
-version = "1.1.11"
+version = "1.1.15"
 description = "Utilities for multi-modal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -71,6 +71,10 @@ testpaths = [ "tests" ]
 
 # action:message_regex:warning_class:module_regex:line
 filterwarnings = [ "error" ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports
+ban-relative-imports = "all" 
 
 [mypy]
 ignore_missing_imports = true

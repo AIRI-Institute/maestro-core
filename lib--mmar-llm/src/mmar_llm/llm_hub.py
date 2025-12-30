@@ -1,7 +1,9 @@
 import mimetypes
 import time
+from collections.abc import Callable
 from functools import cache
 from pathlib import Path
+from threading import Lock
 
 from loguru import logger
 from mmar_mapi import FileStorage
@@ -16,7 +18,7 @@ from mmar_mapi.services import (
     LLMResponseExt,
     ResourceId,
 )
-from mmar_utils import pretty_line, retry_on_cond
+from mmar_utils import limit_concurrency, noop_decorator, pretty_line, retry_on_cond_and_ex
 from requests.exceptions import ConnectTimeout
 
 from mmar_llm.endpoints import find_llm_endpoint
@@ -35,6 +37,15 @@ IMAGE_MIME_TYPES = {
     "png": "image/png",
 }
 NA = "NOT AVAILABLE"
+Limiter = Callable[..., Callable]
+
+
+def is_ok_text_response(result: str) -> bool:
+    return bool(result and result.strip())
+
+
+def is_ok_embedding(embedding) -> bool:
+    return any(map(abs, embedding))
 
 
 def _parse_prompt_for_image(payload: LLMPayload) -> str:
@@ -52,6 +63,8 @@ class LLMHub(LLMHubAPI):
     def __init__(self, config: LLMHubConfig):
         config_llm = config.llm
         self.config_llm: LLMConfig = config_llm
+        self._lock = Lock()
+        self.limiters: dict[str, Limiter] = {}
 
         self.wait_seconds = config_llm.wait_seconds_on_llm_retry
         self.endpoint_keys = [ep.key for ep in config_llm.endpoints]
@@ -61,8 +74,11 @@ class LLMHub(LLMHubAPI):
             eks_loaded = {ek for ek in self.endpoint_keys if self._get_endpoint(ek) is not None}
             endpoints_pretty = ", ".join(eks_loaded)
             logger.info(f"Ready endpoints: {endpoints_pretty}")
-            na_endpoints_pretty = ", ".join(ek for ek in self.endpoint_keys if ek not in eks_loaded)
-            logger.warning(f"Not available endpoints: {na_endpoints_pretty}")
+
+            eks_not_loaded = {ek for ek in self.endpoint_keys if ek not in eks_loaded}
+            if eks_not_loaded:
+                na_endpoints_pretty = ", ".join(eks_not_loaded)
+                logger.warning(f"Not available endpoints: {na_endpoints_pretty}")
         else:
             endpoints_pretty = ", ".join(self.endpoint_keys)
             logger.info(f"Endpoints: {endpoints_pretty}")
@@ -85,10 +101,12 @@ class LLMHub(LLMHubAPI):
             ep_config = ep_configs[0]
             ep_descriptor = ep_config.descriptor
             ep_class = find_llm_endpoint(ep_descriptor)
-            if ep_descriptor is None:
+            if ep_class is None:
                 logger.warning(f"Not found endpoint for descriptor={ep_descriptor}")
                 return None
             ep = ep_class(**ep_config.args)
+            # todo fix
+            ep._key = ek
             if self.validate_endpoints:
                 if not isinstance(ep, LLMEndpoint):
                     raise ValueError(f"Expected LLMEndpoint, but found {type(ep)}: {ep}")
@@ -151,17 +169,48 @@ class LLMHub(LLMHubAPI):
             logger.info(f"Uploaded file: {resource_id} -> {file_id}")
             return file_id
 
+    def _get_limit(self, endpoint_key: str) -> int:
+        ec = self.config_llm.get_endpoint_config(endpoint_key)
+        if not ec:
+            return self.config_llm.default_concurrency_limit
+        return ec.concurrency_limit
+
+    def _get_limiter(self, endpoint_key: str) -> Limiter:
+        with self._lock:
+            limiter = self.limiters.get(endpoint_key)
+            if limiter:
+                return limiter
+
+            limit = self._get_limit(endpoint_key)
+            if limit == -1:
+                logger.info(f"Creating dummy limiter for endpoint_key={endpoint_key}")
+                limiter = noop_decorator
+            else:
+                logger.info(f"Creating limiter({limit}) for endpoint_key={endpoint_key}")
+                limiter = limit_concurrency(limit)
+            self.limiters[endpoint_key] = limiter
+            return limiter
+
     def _get_response_from_payload(
         self, endpoint: LLMEndpoint, payload: LLMPayload, props: LLMCallProps = LCP
     ) -> LLMResponseExt:
-        ek_pretty = f"(endpoint_key={props.endpoint_key})" if props.endpoint_key else ""
-        retrier = retry_on_cond(
-            title=f"#get_response{ek_pretty}", attempts=props.attempts, wait_seconds=self.wait_seconds
+        ek = props.endpoint_key
+        ek_pretty = f"(endpoint_key={props.endpoint_key})" if ek else ""
+        # todo fix: it's flaky that
+        retrier = retry_on_cond_and_ex(
+            title=f"#get_response{ek_pretty}",
+            attempts=props.attempts,
+            wait_seconds=self.wait_seconds,
+            logger=logger,
+            condition=is_ok_text_response,
         )
-        get_response = retrier(endpoint.get_response)
-        payload_dict = {
-            "messages": payload.model_dump()["messages"],
-        }
+        get_response = endpoint.get_response
+        # endpoint._key is always set by _get_endpoint, but use str conversion for type safety
+        limiter = self._get_limiter(str(endpoint._key))  # type: ignore[arg-type]
+        get_response = limiter(get_response)
+        get_response = retrier(get_response)
+
+        payload_dict = {"messages": payload.model_dump()["messages"]}
         if payload.attachments:
             payload_dict["attachments"] = payload.attachments
         text = get_response(request=payload_dict) or ""
@@ -234,11 +283,12 @@ class LLMHub(LLMHubAPI):
             return None
         # todo move to library
         prompt_pretty = pretty_line(prompt)
-        retrier = retry_on_cond(
+        retrier = retry_on_cond_and_ex(
             title=f"#get_embedding(endpoint_key={props.endpoint_key}), prompt={prompt_pretty}",
             attempts=props.attempts,
-            condition=lambda embedding: any(map(abs, embedding)),
+            condition=is_ok_embedding,
             wait_seconds=self.wait_seconds,
+            logger=logger,
         )
         get_embedding = retrier(endpoint.get_embedding)
         return get_embedding(prompt=prompt)

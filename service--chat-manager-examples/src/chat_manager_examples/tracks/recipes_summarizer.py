@@ -1,12 +1,14 @@
-from enum import StrEnum
+from types import SimpleNamespace
 
+from chat_manager_examples.config import DOMAINS
 from mmar_mapi import AIMessage, Chat, FileStorage, HumanMessage
 from mmar_mapi.services import LLMHubAPI, LLMPayload, Message
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
 
-from chat_manager_examples.config import DOMAINS
-
-S = StrEnum("State", ["EMPTY", "START"])
+S = SimpleNamespace(
+    EMPTY="EMPTY",
+    START="START",
+)
 RECIPE_EXAMPLE_1 = """
 Рецепт борща
 📍 *Бульон*

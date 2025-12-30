@@ -20,11 +20,13 @@ class OpenRouterEndpoint(LLMEndpoint):
         emb_dim: int = 1024,
         providers: list[str] = [],
         verify: bool = True,
+        extra_create_args: dict | None = None
     ) -> None:
         self.base_url = base_url
         self._model = OpenAI(base_url=base_url, api_key=api_key, http_client=DefaultHttpxClient(verify=verify))
         self.model_id: str = model_id
         self.extra_body: dict[str, dict[str, list[str]]] = {"provider": {"order": providers}}
+        self.extra_create_args = extra_create_args or {}
         self._dim: int = emb_dim
 
     def __call__(self) -> OpenAI:
@@ -35,7 +37,7 @@ class OpenRouterEndpoint(LLMEndpoint):
         messages_json = dump_messages(payload)
 
         completions = self._model.chat.completions
-        response_openai = completions.create(model=self.model_id, messages=messages_json, extra_body=self.extra_body)
+        response_openai = completions.create(model=self.model_id, messages=messages_json, extra_body=self.extra_body, **self.extra_create_args)  # type: ignore[arg-type]
         text = response_openai.choices[0].message.content or ""
         return LLMResponseExt(text=text)
 
