@@ -16,3 +16,8 @@ class XMLParser:
     def get_tag_list(response: str, tag: str | StrEnum) -> list[str]:
         tag_content = re.findall(f"<{tag}>(.*?)</{tag}>", response, re.DOTALL)
         return [content.lower().strip() for content in tag_content]
+
+    @staticmethod
+    def get_tag_list_unaltered(response: str, tag: str | StrEnum) -> list[str]:
+        tag_content = re.findall(f"<{tag}>(.*?)</{tag}>", response, re.DOTALL)
+        return [content.strip() for content in tag_content]

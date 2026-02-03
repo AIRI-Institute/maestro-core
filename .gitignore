@@ -1,4 +1,4 @@
-data/
+/data/
 llm_config.json
 uv.lock
 venv

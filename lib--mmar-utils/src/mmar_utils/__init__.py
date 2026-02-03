@@ -5,6 +5,7 @@ Utilities for multi-modal architectures team
 
 from mmar_utils.validators import ExistingDir
 
+from .io_asyncio import gather_with_limit
 from .decorators_limit_concurrency import limit_concurrency
 from .decorators_on_error_log_and_none import on_error_log_and_none
 from .decorators_retry import retry_on_cond, retry_on_ex, retry_on_cond_and_ex
@@ -56,32 +57,33 @@ __all__ = [
     "PromptBaseContext",
     "SecretStrNotEmpty",
     "StrNotEmpty",
+    "anoop",
     "chunk_respect_semantic",
+    "clean_and_fix_text",
     "edit_object",
     "extract_text_inside",
     "flatten",
+    "gather_with_limit",
+    "limit_concurrency",
+    "noop",
+    "noop_decorator",
     "on_error_log_and_none",
     "parallel_map",
+    "postprocess_text",
     "pretty_line",
     "pretty_prefix",
     "read_json",
     "remove_prefix_if_present",
     "remove_suffix_if_present",
     "retry_on_cond",
-    "retry_on_ex",
     "retry_on_cond_and_ex",
+    "retry_on_ex",
     "rindex_safe",
+    "take_exactly_one",
     "trace_with",
     "try_parse_bool",
     "try_parse_float",
     "try_parse_int",
     "try_parse_json",
-    "postprocess_text",
-    "clean_and_fix_text",
-    "noop",
-    "anoop",
-    "noop_decorator",
     "validate_no_underscores",
-    "take_exactly_one",
-    "limit_concurrency",
 ]

@@ -10,7 +10,7 @@ dependencies = [
     "pydantic-settings~=2.12.0",
     "loguru~=0.7.2",
 
-    "mmar-mapi~=1.4.2",
+    "mmar-mapi~=1.4.5",
     "mmar-ptag~=1.0.18",
     "mmar-utils~=1.1.11",
 
@@ -20,6 +20,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fire~=0.7.0",
+    "python-dotenv~=1.0.0",
     "pytest>=8.4.1",
 ]
 

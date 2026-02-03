@@ -38,3 +38,14 @@ class DiagnosticsXMLTagEnum(StrEnum):
     DIAG = auto()
     DOC = auto()
     DESC = auto()
+
+
+class UncertaintyXMLTagEnum(StrEnum):
+    @staticmethod
+    def _generate_next_value_(name: str, start: int, count: int, last_values: list[str]) -> str:
+        return f"{name.lower()}"
+
+    LAST_MESSAGE = auto()
+    INPUT_PROMPT = auto()
+    RAW_DIAGNOSES = auto()
+    U_ESTIMATE = auto()

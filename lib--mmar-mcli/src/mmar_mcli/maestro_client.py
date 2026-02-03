@@ -1,12 +1,13 @@
+import asyncio
 import json
 import time
-from functools import cache, partial
+from functools import cache, partial, wraps
 from types import SimpleNamespace
 
-from aiohttp import FormData
+from aiohttp import ClientConnectionError, ClientResponseError, FormData
 from loguru import logger
 from mmar_mapi import AIMessage, Context, FileStorage, HumanMessage, ResourceId, make_content
-from mmar_utils import remove_prefix_if_present
+from mmar_utils import on_error_log_and_none, remove_prefix_if_present, retry_on_ex
 
 from mmar_mcli.io_aiohttp import make_file_form_data, request_with_session
 from mmar_mcli.models import FileData, MaestroConfig, MessageData, RequestCall
@@ -16,9 +17,8 @@ ROUTES = SimpleNamespace(
     download="api/v2/files/download_bytes",
     upload="api/v2/files/upload",
 )
-
-
 MESSAGE_START: MessageData = make_content(text="/start"), None
+POST_ERRORS = (asyncio.TimeoutError, ClientConnectionError, ClientResponseError)
 
 
 def fix_maestro_address(maestro_address: str) -> str:
@@ -88,10 +88,18 @@ class MaestroClient(MaestroClientI):
         error: str = getattr(getattr(config, "res", SimpleNamespace()), "error", "Server is not available")
         files_dir: str | None = getattr(config, "files_dir", None)
         timeout: int = getattr(config, "timeout", 120)
+        with_retries: bool = getattr(config, "with_retries", False)
 
         self.url = fix_maestro_address(addresses__maestro) + "/" + ROUTES.send
         logger.info(f"Creating client, maestro URL: {self.url}")
-        self.request = partial(request_with_session, timeout=timeout, headers_extra=headers_extra)
+
+        request = partial(request_with_session, timeout=timeout, headers_extra=headers_extra)
+        request = wraps(request_with_session)(request)
+        if with_retries:
+            request = retry_on_ex(attempts=3, wait_seconds=1, catch=POST_ERRORS, logger=logger)(request)
+        request = on_error_log_and_none(logger.exception)(request)
+
+        self.request = request
         self.msg_data_response_error: MessageData = make_content(text=error), None
 
         self.file_storage: FileStorage | None = files_dir and FileStorage(files_dir)

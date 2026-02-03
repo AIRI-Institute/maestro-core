@@ -73,7 +73,7 @@ chain = ReasoningChain(
 
 ```python
 from mmar_carl import ReasoningContext, Language
-from mmar_llm import EntrypointsAccessor
+from mmar_llm import LLMHub
 
 context = ReasoningContext(
     outer_context=input_data,  # Исходные данные для анализа
@@ -271,19 +271,19 @@ context_en = ReasoningContext(
 
 ## Интеграция с mmar-llm
 
-Прямая интеграция с EntrypointsAccessor без излишних абстракций:
+Прямая интеграция с LLMHub без излишних абстракций:
 
 ```python
-from mmar_llm import EntrypointsAccessor, EntrypointsConfig
+from mmar_llm import LLMHub, LLMConfig
 import json
 
-# Создание EntrypointsAccessor из конфигурационного файла
+# Создание LLMHub из конфигурационного файла
 def create_entrypoints(entrypoints_path: str):
     with open(entrypoints_path, encoding="utf-8") as f:
         config_data = json.load(f)
 
-    entrypoints_config = EntrypointsConfig.model_validate(config_data)
-    return EntrypointsAccessor(entrypoints_config)
+    entrypoints_config = LLMConfig.model_validate(config_data)
+    return LLMHub(entrypoints_config)
 
 entrypoints = create_entrypoints("entrypoints.json")
 

@@ -24,8 +24,7 @@ from src.mmar_carl import (
     ReasoningContext,
     StepDescription,
 )
-from mmar_llm import EntrypointsAccessor, EntrypointsConfig
-from mmar_mapi.api import LLMAccessorAPI
+from mmar_llm import LLMConfig, LLMHub
 from mmar_ptag import ptag_client
 
 # Example financial data (CSV format)
@@ -207,19 +206,19 @@ def create_entrypoints(entrypoints_path: str | None = None):
 
     try:
         # Load entrypoints from JSON configuration
-        # EntrypointsAccessor expects a config object, not a path
+        # LLMHub expects a config object, not a path
         with open(entrypoints_path, encoding="utf-8") as f:
             config_data = json.load(f)
 
-        # Create proper EntrypointsConfig
-        entrypoints_config = EntrypointsConfig.model_validate(config_data)
-        return EntrypointsAccessor(entrypoints_config)
+        # Create proper LLMConfig
+        entrypoints_config = LLMConfig.model_validate(config_data)
+        return LLMHub(entrypoints_config)
     except Exception as e:
         raise ValueError(f"Failed to create entrypoints from {entrypoints_path}: {e}")
 
 
 def create_llm_accessor():
-    return ptag_client(LLMAccessorAPI, 40631)
+    return ptag_client(LLMHub, 40631)
 
 
 async def demonstrate_russian_chain(entrypoints_path: str | None = None, endpoint_key: str = "default"):
@@ -575,7 +574,7 @@ async def main():
         print("🎉 ALL DEMONSTRATIONS COMPLETED SUCCESSFULLY!")
         print("=" * 60)
         print("\n📚 Key Features Demonstrated:")
-        print("  ✅ Direct mmar-llm EntrypointsAccessor integration")
+        print("  ✅ Direct mmar-llm LLMHub integration")
         print("  ✅ Multi-language support (Russian/English)")
         print("  ✅ System prompt support for domain expertise")
         print("  ✅ Parallel execution with DAG optimization")

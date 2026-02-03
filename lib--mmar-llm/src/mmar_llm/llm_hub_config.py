@@ -18,6 +18,7 @@ class LLMEndpointConfig(BaseModel):
     concurrency_limit: int = -1
     args: StrDict
     extra: StrDict | None = None
+    hidden: bool = False
 
     def as_metadata(self) -> LLMEndpointMetadata:
         return LLMEndpointMetadata(key=self.key, caption=self.caption)
@@ -56,7 +57,7 @@ class LLMConfig(BaseModel):
     def as_metadata(self) -> LLMHubMetadata:
         # we can do `return LLMHubMetadata(**self.model_dump())`, but better to pass manually to ensure that no private data passed
         return LLMHubMetadata(
-            endpoints=[ep.as_metadata() for ep in self.endpoints],
+            endpoints=[ep.as_metadata() for ep in self.endpoints if not ep.hidden],
             default_endpoint_key=self.default_endpoint_key,
         )
 

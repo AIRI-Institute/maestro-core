@@ -42,7 +42,7 @@ def get_trace_url(host: str, trace_id: str) -> str:
 def trace_span(langfuse: LangfuseClient, name: str, **kwargs):
     """Context manager for creating and managing a Langfuse span."""
     span = langfuse.start_span(name=name, **kwargs)
-    logger.debug(f"Langfuse span created: {span.trace_id}")
+    logger.trace(f"Langfuse span created: {span.trace_id}")
     start_time = time.time()
 
     try:
@@ -60,7 +60,7 @@ def trace_span(langfuse: LangfuseClient, name: str, **kwargs):
 
 def log_trace_success(host: str, trace_id: str) -> None:
     """Log successful trace send with URL."""
-    logger.info(f"Langfuse trace sent: {get_trace_url(host, trace_id)}")
+    logger.trace(f"Langfuse trace sent: {get_trace_url(host, trace_id)}")
 
 
 def log_trace_error(host: str, trace_id: str) -> None:
@@ -123,7 +123,7 @@ class LLMHubMonitoring(LLMHubAPI):
         return self.llm_hub.get_metadata()
 
     def get_response(self, *, request: LLMRequest, props: LLMCallProps = LCP) -> str:
-        logger.info("#get_response, forwarding")
+        logger.debug("#get_response, forwarding")
         if not self.langfuse:
             return self.llm_hub.get_response(request=request, props=props)
 

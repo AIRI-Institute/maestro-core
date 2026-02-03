@@ -31,15 +31,15 @@ from mmar_carl import (
     ReasoningChain, StepDescription, ReasoningContext,
     Language, ContextSearchConfig
 )
-from mmar_llm import EntrypointsAccessor, EntrypointsConfig
+from mmar_llm import LLMHub, LLMConfig
 import json
 
-# Создание EntrypointsAccessor
+# Создание LLMHub
 def create_entrypoints(entrypoints_path: str):
     with open(entrypoints_path, encoding="utf-8") as f:
         config_data = json.load(f)
-    entrypoints_config = EntrypointsConfig.model_validate(config_data)
-    return EntrypointsAccessor(entrypoints_config)
+    entrypoints_config = LLMConfig.model_validate(config_data)
+    return LLMHub(entrypoints_config)
 
 # Определение цепочки медицинских рассуждений
 CLINICAL_REASONING = [

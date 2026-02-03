@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class LLMClientBase(ABC):
@@ -314,9 +314,10 @@ class ReasoningContext(BaseModel):
 
     Contains the input data, API object for LLM calls, execution history, and configuration.
     """
+    model_config = ConfigDict(extra="forbid")
 
     outer_context: str = Field(..., description="Input data as string (it can be CSV or other text information)")
-    api: Any = Field(..., description="API object for LLM execution (EntrypointsAccessor or LLMAccessorAPI)")
+    api: Any = Field(..., description="API object for LLM execution (LLMHub or LLMHubAPI)")
     endpoint_key: str = Field(default="default", description="Key for the specific entrypoint to use")
     retry_max: int = Field(default=3, description="Maximum retry attempts")
     history: list[str] = Field(default_factory=list, description="Accumulated reasoning history")

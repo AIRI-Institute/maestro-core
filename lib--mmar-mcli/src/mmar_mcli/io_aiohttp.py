@@ -1,13 +1,8 @@
-import asyncio
 from mimetypes import guess_type
 
-from aiohttp import ClientConnectionError, ClientError, ClientResponseError, ClientSession, ClientTimeout, FormData
-from loguru import logger
-from mmar_utils import on_error_log_and_none, retry_on_ex
+from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
 from mmar_mcli.models import FileData
-
-POST_ERRORS = (asyncio.TimeoutError, ClientConnectionError, ClientResponseError)
 
 
 def make_file_form_data(file_data: FileData) -> FormData:
@@ -18,8 +13,6 @@ def make_file_form_data(file_data: FileData) -> FormData:
     return fd
 
 
-@on_error_log_and_none(logger.exception)
-@retry_on_ex(attempts=3, wait_seconds=1, catch=POST_ERRORS, logger=logger.warning)
 async def request_with_session(
     *,
     method: str,

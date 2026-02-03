@@ -9,7 +9,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from .models import Language, PromptTemplate, ReasoningContext, ReasoningResult, StepDescription, StepExecutionResult
+from mmar_carl.models import Language, PromptTemplate, ReasoningContext, ReasoningResult, StepDescription, StepExecutionResult
+from mmar_utils import gather_with_limit
 
 
 @dataclass
@@ -49,7 +50,7 @@ class DAGExecutor:
 
     def __init__(
         self,
-        max_workers: int = 3,
+        max_workers: int = 1,
         prompt_template: PromptTemplate | None = None,
         enable_progress: bool = False,
     ):
@@ -234,7 +235,10 @@ class DAGExecutor:
         # Execute in parallel
         tasks = [self.execute_step(node, ctx) for node, ctx in zip(ready_nodes, context_snapshots)]
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if self.max_workers == 1:
+            results = [(await task) for task in tasks]
+        else:
+            results = await gather_with_limit(*tasks, return_exceptions=True, max_workers=self.max_workers)
 
         # Process results and handle exceptions
         processed_results = []

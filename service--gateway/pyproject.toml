@@ -16,7 +16,7 @@ dependencies = [
     "starlette~=0.41.3",
 
     "mmar-ptag~=1.0.18",
-    "mmar-mapi~=1.4.2",
+    "mmar-mapi~=1.4.5",
     "mmar-utils~=1.1.11",
 ]
 

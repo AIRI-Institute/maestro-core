@@ -1,7 +1,7 @@
 [project]
 name = "mmar-carl"
 # dynamic version is not supported yet on uv_build
-version = "0.0.11"
+version = "0.0.14"
 description = "Collaborative Agent Reasoning Library"
 authors = [{name = "glazkov", email = "glazkov@airi.net"}, {name = "shaposhnikov", email = "shaposhnikov@airi.net"}, {name = "tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -26,11 +26,13 @@ classifiers = [
 dependencies = [
     "faiss-cpu>=1.7.0",
     "fastembed>=0.7.3",
-    "mmar-llm~=1.0.6",
-    "mmar-mapi~=1.4.4",
-    "mmar-ptag>=1.0.12",
     "numpy>=1.21.0",
     "pydantic>=2.11.7",
+
+    "mmar-llm~=2.0.11",
+    "mmar-mapi~=1.4.4",
+    "mmar-ptag~=1.0.20",
+    "mmar-utils~=1.1.17",
 ]
 
 [dependency-groups]

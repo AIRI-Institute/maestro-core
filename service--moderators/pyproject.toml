@@ -11,7 +11,7 @@ dependencies = [
     "mmar-ptag~=1.0.18",
     "mmar-utils~=1.1.11",
     "mmar-flame~=1.0.1",
-    "mmar-mapi~=1.4.2",
+    "mmar-mapi~=1.4.5",
     "mmar-mimpl~=1.0.2",
 ]
 

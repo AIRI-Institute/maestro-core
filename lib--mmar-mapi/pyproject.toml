@@ -1,7 +1,7 @@
 [project]
 name = "mmar-mapi"
 # dynamic version is not supported yet on uv_build
-version = "1.4.4"
+version = "1.4.6"
 description = "Common pure/IO utilities for multi-modal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"

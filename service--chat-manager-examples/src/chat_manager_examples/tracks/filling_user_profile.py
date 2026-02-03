@@ -12,7 +12,7 @@ from chat_manager_examples.beta_slot_filling_track import (
 from chat_manager_examples.config import DOMAINS
 
 
-class FillingUserProfile(BaseModel):
+class FillingUserProfileModel(BaseModel):
     """User profile with name, email, and optional favorite fruits."""
 
     name: str
@@ -55,7 +55,7 @@ FAVORITE_FRUITS_FIELD = ListField(
 FILLING_USER_PROFILE_FIELDS = [NAME_FIELD, EMAIL_FIELD, FAVORITE_FRUITS_FIELD]
 
 
-class FillingUserProfileTrack(SlotFillingTrack):
+class FillingUserProfile(SlotFillingTrack):
     """Track for collecting user profile with name, email, and optional favorite fruits."""
 
     DOMAIN = DOMAINS.examples
@@ -63,7 +63,7 @@ class FillingUserProfileTrack(SlotFillingTrack):
 
     def __init__(self):
         super().__init__(
-            model=FillingUserProfile,
+            model=FillingUserProfileModel,
             fields=FILLING_USER_PROFILE_FIELDS,
             base_descriptor=BaseFieldDescriptor(),
             confirm_at_end=False,

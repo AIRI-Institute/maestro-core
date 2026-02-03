@@ -155,7 +155,7 @@ class BaseMessage(Base):
     type: str
     content: Content = Field("", examples=["Привет"])
     date_time: str = Field(default_factory=now_pretty, examples=[_EXAMPLE_DT])
-    extra: StrDict | None = Field(None, examples=[None])
+    extra: StrDict | None = Field(default=None, examples=[None])
 
     @property
     def text(self) -> str:
@@ -228,7 +228,7 @@ class HumanMessage(BaseMessage):
 
 class AIMessage(BaseMessage):
     type: Literal["ai"] = "ai"
-    state: str = Field("", examples=["COLLECTION"])
+    state: str = Field(default="", examples=["COLLECTION"])
 
     @property
     def action(self) -> str:

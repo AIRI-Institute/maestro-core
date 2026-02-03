@@ -4,8 +4,7 @@ LLM client implementations for CARL using mmar-llm library.
 Provides integration with mmar-llm library for production use.
 """
 
-from mmar_llm import EntrypointsAccessor
-# from mmar_mapi.api import LLMAccessorAPI, LLMCallProps
+from mmar_llm import LLMHub
 from mmar_mapi.services import LLMHubAPI, LLMCallProps
 from .models import LLMClientBase
 
@@ -15,7 +14,7 @@ def create_llm_client(api, endpoint_key: str) -> LLMClientBase:
     Factory function to create the appropriate LLM client based on the API type.
 
     Args:
-        api: Either EntrypointsAccessor, LLMHubAPI, or dynamically created client
+        api: Either LLMHub, LLMHubAPI, or dynamically created client
         endpoint_key: Key for the specific entrypoint to use
 
     Returns:
@@ -37,7 +36,7 @@ def create_llm_client(api, endpoint_key: str) -> LLMClientBase:
 
     # Check for mock classes by type name for testing
     api_type_name = type(api).__name__
-    if "EntrypointsAccessor" in api_type_name:
+    if "LLMHub" in api_type_name:
         return EntrypointsAccessorLLMClient(api, endpoint_key)
     elif "LLMHubAPI" in api_type_name or "PTAG" in api_type_name:
         return LLMAccessorClient(api, endpoint_key)
@@ -59,7 +58,7 @@ class EntrypointsAccessorLLMClient(LLMClientBase):
     LLM client implementation using mmar-llm library.
     """
 
-    def __init__(self, entrypoints: EntrypointsAccessor, endpoint_key: str):
+    def __init__(self, entrypoints: LLMHub, endpoint_key: str):
         if not endpoint_key:
             raise ValueError("endpoint_key is required and cannot be empty")
 

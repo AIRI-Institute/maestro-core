@@ -12,7 +12,7 @@ dependencies = [
     "telethon==1.38.1",
 
     "mmar-ptag~=1.0.18",
-    "mmar-mapi~=1.4.2",
+    "mmar-mapi~=1.4.5",
     "mmar-utils~=1.1.15",
     "mmar-mcli~=1.0.10",
     "mmar-mimpl~=1.0.1",

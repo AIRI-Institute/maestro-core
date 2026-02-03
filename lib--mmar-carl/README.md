@@ -11,9 +11,9 @@ CARL provides a structured framework for creating expert chain-of-thought reason
 - **🔍 Advanced Context Extraction**: Configurable search strategies (substring and FAISS vector search) for intelligent context retrieval
 - **🎯 Per-Query Search Configuration**: Fine-grained control with individual search strategy overrides for each query
 - **⚡ DAG-based Execution**: Automatically parallelizes reasoning steps based on dependencies
-- **🤖 Automatic LLM Client Detection**: Smart detection of EntrypointsAccessor or LLMAccessorAPI with automatic client creation
+- **🤖 Automatic LLM Client Detection**: Smart detection of LLMHub with automatic client creation
 - **🎛️ System Prompt Support**: Include domain-specific instructions and persona in every reasoning step
-- **🔗 Direct mmar-llm Integration**: Seamless integration with EntrypointsAccessor and LLMAccessorAPI
+- **🔗 Direct mmar-llm Integration**: Seamless integration with LLMHub
 - **🌍 Multi-language Support**: Built-in support for Russian and English languages with easy extensibility
 - **🏗️ Universal Architecture**: Works with any domain - financial, medical, legal, technical, or custom expert knowledge
 - **⚙️ Production Ready**: Async/sync compatibility, error handling, and retry logic
@@ -30,7 +30,7 @@ from mmar_carl import (
     ReasoningChain, StepDescription, ReasoningContext,
     Language
 )
-from mmar_llm import EntrypointsAccessor, EntrypointsConfig
+from mmar_llm import LLMHub, LLMConfig
 
 # Define a reasoning chain with RAG-like context queries
 EXPERT_ANALYSIS = [
@@ -55,15 +55,15 @@ EXPERT_ANALYSIS = [
     )
 ]
 
-# Create entrypoints accessor from configuration file
+# Create LLM hub from configuration file
 def create_entrypoints(entrypoints_path: str):
-    """Create EntrypointsAccessor from configuration file."""
+    """Create LLMHub from configuration file."""
     import json
     with open(entrypoints_path, encoding="utf-8") as f:
         config_data = json.load(f)
 
-    entrypoints_config = EntrypointsConfig.model_validate(config_data)
-    return EntrypointsAccessor(entrypoints_config)
+    entrypoints_config = LLMConfig.model_validate(config_data)
+    return LLMHub(entrypoints_config)
 
 # Create and execute the reasoning chain
 entrypoints = create_entrypoints("entrypoints.json")
@@ -97,25 +97,25 @@ print(result.get_final_output())
 
 ## Automatic LLM Client Detection
 
-CARL features **intelligent LLM client detection** that automatically creates the appropriate client based on your API object. Simply pass either an `EntrypointsAccessor` or `LLMAccessorAPI` instance, and CARL will handle the rest:
+CARL features **intelligent LLM client detection** that automatically creates the appropriate client based on your API object. Simply pass an `LLMHub` instance, and CARL will handle the rest:
 
 ```python
 from mmar_carl import ReasoningContext, Language
-from mmar_llm import EntrypointsAccessor
-from mmar_mapi.api import LLMAccessorAPI
+from mmar_llm import LLMHub, LLMConfig
+from mmar_mapi.api import LLMHubAPI
 from mmar_ptag import ptag_client  # For PTAG-generated clients
 
-# Option 1: With EntrypointsAccessor
-entrypoints = EntrypointsAccessor(config)
+# Option 1: With LLMHub from mmar-llm
+llm_hub = LLMHub(config)
 context = ReasoningContext(
     outer_context=data,
-    api=entrypoints,  # Automatically creates EntrypointsAccessorLLMClient
+    api=llm_hub,  # Automatically creates EntrypointsAccessorLLMClient
     endpoint_key="my_endpoint",
     language=Language.ENGLISH
 )
 
-# Option 2: With LLMAccessorAPI
-llm_api = LLMAccessorAPI()
+# Option 2: With LLMHubAPI from mmar-mapi
+llm_api = LLMHubAPI()
 context = ReasoningContext(
     outer_context=data,
     api=llm_api,  # Automatically creates LLMAccessorClient
@@ -124,10 +124,10 @@ context = ReasoningContext(
 )
 
 # Option 3: With PTAG-generated client
-ptag_client_instance = ptag_client(LLMAccessorAPI, "localhost:50051")
+ptag_client_instance = ptag_client(LLMHub, "localhost:50051")
 context = ReasoningContext(
     outer_context=data,
-    api=ptag_client_instance,  # Automatically detects and creates LLMAccessorClient
+    api=ptag_client_instance,  # Automatically detects and creates LLMHub
     endpoint_key="my_endpoint",
     language=Language.ENGLISH
 )
@@ -135,8 +135,8 @@ context = ReasoningContext(
 
 ### Supported API Types
 
-- **EntrypointsAccessor**: Direct integration with mmar-llm library
-- **LLMAccessorAPI**: Integration with mmar-mapi library
+- **LLMHub**: Direct integration with mmar-llm library
+- **LLMHubAPI**: Integration with mmar-mapi library
 - **PTAG Clients**: Dynamically created clients via `ptag_client()`
 - **Mock Objects**: Test implementations that simulate the interface
 - **Duck Typing**: Any object implementing `__getitem__` or `get_response` methods
@@ -206,7 +206,7 @@ Data for analysis:
 pip install mmar-carl
 
 # For development with mmar-llm integration
-pip install mmar-carl mmar-llm>=1.0.3
+pip install mmar-carl mmar-llm~=2.0.11
 
 # Development version with all dependencies
 pip install mmar-carl[dev]
@@ -221,7 +221,7 @@ pip install mmar-carl faiss-cpu>=1.7.0 numpy>=1.21.0 sentence-transformers>=2.2.
 ## Requirements
 
 - Python 3.12+
-- mmar-llm>=1.0.3 (for LLM integration)
+- mmar-llm~=2.0.11 (for LLM integration)
 - Pydantic for data models
 - asyncio for parallel execution
 
@@ -232,10 +232,8 @@ pip install mmar-carl faiss-cpu>=1.7.0 numpy>=1.21.0 sentence-transformers>=2.2.
 
 ## Documentation
 
-- **Quick Start**: [docs/quickstart.md](docs/quickstart.md) - Get up and running quickly
-- **Examples**: [docs/examples.md](docs/examples.md) - Real-world usage examples
-- **Advanced Usage**: [docs/advanced.md](docs/advanced.md) - Advanced features and optimization
-- **Methodology**: [docs/methodology.md](docs/methodology.md) - Development methodology (in Russian)
+- **Reasoning Methodology**: [docs/REASONING.md](docs/REASONING.md) - Basic reasoning chains methodology (in Russian)
+- **Advanced Reasoning**: [docs/REASONING+.md](docs/REASONING+.md) - Advanced reasoning chains with detailed examples (in Russian)
 
 ## Architecture
 
@@ -245,7 +243,7 @@ CARL is built around several key components:
 - **ReasoningChain**: Orchestrates the execution of reasoning steps with DAG optimization
 - **DAGExecutor**: Handles parallel execution based on dependencies with configurable workers
 - **ReasoningContext**: Manages execution state, history, multi-language support, and input data with automatic LLM client detection
-- **LLMClientFactory**: Automatically detects API types and creates appropriate LLM clients (EntrypointsAccessorLLMClient or LLMAccessorClient)
+- **LLMClientFactory**: Automatically detects API types and creates appropriate LLM clients (EntrypointsAccessorLLMClient for LLMHub or LLMAccessorClient for LLMHubAPI)
 - **Language**: Built-in support for Russian and English languages (easily extensible)
 - **PromptTemplate**: Multi-language prompt templates with RAG-like context integration
 
@@ -421,20 +419,20 @@ chain = (ChainBuilder()
 Simple and straightforward usage with automatic client detection:
 
 ```python
-from mmar_llm import EntrypointsAccessor
-from mmar_mapi.api import LLMAccessorAPI
+from mmar_llm import LLMHub
+from mmar_mapi.api import LLMHubAPI
 
 # Automatic usage pattern - works with both API types
 context = ReasoningContext(
     outer_context=data,
-    api=entrypoints,  # EntrypointsAccessor - creates EntrypointsAccessorLLMClient
+    api=llm_hub,  # LLMHub - creates EntrypointsAccessorLLMClient
     endpoint_key="my_endpoint"
 )
 
-# Also works with LLMAccessorAPI
+# Also works with LLMHubAPI
 context = ReasoningContext(
     outer_context=data,
-    api=llm_api,  # LLMAccessorAPI - creates LLMAccessorClient
+    api=llm_api,  # LLMHubAPI - creates LLMAccessorClient
     endpoint_key="my_endpoint"
 )
 ```
@@ -446,7 +444,7 @@ See the [example.py](example.py) file for a complete end-to-end demonstration wi
 - **🔍 RAG-like Context Extraction**: Automatic context extraction from input data
 - **🤖 Automatic LLM Client Detection**: Smart detection of API types with automatic client creation
 - **🎛️ System Prompt Support**: Domain expertise and consistent persona across all reasoning steps
-- **🔗 Direct mmar-llm Integration**: Seamless EntrypointsAccessor and LLMAccessorAPI usage
+- **🔗 Direct mmar-llm Integration**: Seamless LLMHub usage
 - **🌍 Multi-language Support**: Russian/English with easy extensibility
 - **⚡ Parallel Execution**: DAG-based parallel processing
 - **⚙️ Error Handling**: Comprehensive retry logic and error management

@@ -10,10 +10,15 @@ class LLMCallProps(BaseModel, frozen=True):
 
     endpoint_key: str = ""
     attempts: int = 1
+    extra: dict[str, str] | None = None
 
-    def with_endpoint_key(self, endpoint_key):
+    def with_endpoint_key(self, endpoint_key) -> 'LLMCallProps':
         return self.model_copy(update=dict(endpoint_key=endpoint_key))
 
+    def put_extra(self, extra_key: str, extra_value: str) -> 'LLMCallProps':
+        extra_upd = {**(self.extra or {}), extra_key: extra_value}
+        return self.model_copy(update=dict(extra=extra_upd))
+        
 
 LCP = LLMCallProps()
 ResourceId = str
@@ -123,6 +128,8 @@ class LLMHubMetadata(BaseModel):
 
     def get_endpoint_keys(self):
         return [ep.key for ep in self.endpoints]
+
+LLM_HUB_METADATA_EMPTY = LLMHubMetadata(endpoints=[], default_endpoint_key='')
 
 class LLMHubAPI:
     def get_metadata(self) -> LLMHubMetadata:

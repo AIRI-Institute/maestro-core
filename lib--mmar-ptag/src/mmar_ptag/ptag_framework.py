@@ -199,7 +199,7 @@ class ClientProxy(Generic[T]):
             try:
                 return raw_method(proxy_self, *args, **kwargs)
             except RpcError as ex:
-                if ex.code() == StatusCode.UNAVAILABLE:
+                if ex.code() in (StatusCode.UNAVAILABLE, StatusCode.DEADLINE_EXCEEDED):
                     logger.error(f"ERROR: [{ex.details()}], reconnecting...")
                     fresh_method = proxy_self._reconnect(raw_method.__name__)
                     return fresh_method(*args, **kwargs)

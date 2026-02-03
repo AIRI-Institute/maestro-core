@@ -12,7 +12,7 @@ dependencies = [
     # replace with `~=` in the future, after eliminating provide_all_and_memoize from legacy.py
     "dishka==1.7.2",
 
-    "mmar-mapi~=1.4.3",
+    "mmar-mapi~=1.4.5",
     "mmar-ptag~=1.0.18",
     "mmar-utils~=1.1.11",
     "mmar-llm~=2.0.6",

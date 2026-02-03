@@ -1,7 +1,7 @@
 [project]
 name = "mmar-mcli"
 # dynamic version is not supported yet on uv_build
-version = "1.0.10"
+version = "1.0.13"
 description = "Client to Maestro"
 authors = [{name = "tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -28,7 +28,7 @@ dependencies = [
     "loguru==0.7.3",
 
     "mmar_mapi~=1.4.2",
-    "mmar_utils~=1.1.11",
+    "mmar_utils~=1.1.16",
 ]
 
 [build-system]

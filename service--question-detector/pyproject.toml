@@ -13,7 +13,7 @@ dependencies = [
     "pymorphy3>=2.0.3",
     "scikit-learn==1.6.1",
 
-    "mmar-mapi~=1.4.2",
+    "mmar-mapi~=1.4.5",
     "mmar-ptag~=1.0.18",
     "mmar-utils~=1.1.11",
     "mmar-mimpl~=1.0.2",
