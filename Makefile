@@ -1,7 +1,7 @@
 DOC=docker compose --progress='plain'
 records=
 env_params=
-RUN_MAESTRO_CLI_TRACK=$(env_params) uv run --prerelease=allow  --refresh-package=mmar-llm --refresh-package=mmar-mapi --refresh-package=mmar-mcli python maestro_client_cli.py track
+RUN_MAESTRO_CLI_TRACK=$(env_params) uv run --prerelease=allow --refresh-package=mmar-mapi --refresh-package=mmar-mcli python maestro_client_cli.py track
 service=
 
 build:
@@ -10,7 +10,9 @@ build:
 setup-env:
 	mkdir -p data/maestro
 	cp .env.default data/.env
-	cp llm_config.json.default data/llm_config.json
+	@echo "ℹ️  To configure LLM Hub:"
+	@echo "   Option 1: cp service--llm-hub/llm-config.toml.example service--llm-hub/llm-config.toml"
+	@echo "   Option 2: make run-wizard && make update-llm-config"
 
 up:
 	$(DOC) up --detach
@@ -39,7 +41,15 @@ run-describer:
 	$(RUN_MAESTRO_CLI_TRACK) Describer $(records)
 
 update-llm-config:
-	cp llm_config.json data/llm_config.json
+	@if [ -f llm-config.toml ]; then \
+		echo "Copying llm-config.toml to service--llm-hub/"; \
+		cp llm-config.toml service--llm-hub/llm-config.toml; \
+		echo "✓ Updated service--llm-hub/llm-config.toml"; \
+	else \
+		echo "Error: llm-config.toml not found"; \
+		echo "Run 'make run-wizard' to generate it, or create it manually"; \
+		exit 1; \
+	fi
 
 restart-llm-hub:
 	$(DOC) restart llm-hub

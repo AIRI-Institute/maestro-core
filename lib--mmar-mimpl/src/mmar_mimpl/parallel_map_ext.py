@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterable
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import Any, TypeVar
 
-from mmar_ptag.ptag_framework import TRACE_ID_VAR
+from mmar_mimpl.trace_id import TRACE_ID_VAR
 from tqdm import tqdm
 
 X = TypeVar("X")
@@ -20,8 +20,8 @@ def parallel_map_ext(
     desc: str = "",
 ) -> list[X]:
     """
-    extended version of `parallel_map` which respects value of mmar_ptag.ptag_framework.TRACE_ID_VAR
-    the goal: simplify parallel calls in services which uses PTAG
+    extended version of `parallel_map` which respects value of mmar_mimpl.TRACE_ID_VAR
+    the goal: simplify parallel calls in services which uses mmar_mimpl
     """
     # Capture current trace_id context to propagate to worker threads
     current_trace_id = TRACE_ID_VAR.get()

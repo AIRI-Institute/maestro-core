@@ -1,13 +1,11 @@
 [project]
 name = "maestro-core"
-version = "0.0.2"
+version = "0.2.0"
 requires-python = ">=3.12"
 
 [dependency-groups]
 dev = [
     "fire",
-
-    "mmar-llm~=2.0.6",
     "mmar-mcli~=1.0.10",
     "mmar-mapi~=1.4.3",
 ]

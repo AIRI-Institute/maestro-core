@@ -1,0 +1,12 @@
+{
+  "default_endpoint_key": "dummy-test",
+  "warmup": false,
+  "endpoints": [
+    {
+      "key": "dummy-test",
+      "descriptor": "mmar_llm.dummy_endpoint.DummyEndpoint",
+      "caption": "Dummy Test Endpoint",
+      "args": {}
+    }
+  ]
+}

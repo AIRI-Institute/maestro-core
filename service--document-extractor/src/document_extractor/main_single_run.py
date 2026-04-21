@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from mmar_ptag import init_logger
+from mmar_mimpl import init_logger
 from loguru import logger
 
 from document_extractor.config import Config, load_config

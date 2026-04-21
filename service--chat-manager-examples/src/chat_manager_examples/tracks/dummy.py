@@ -1,6 +1,7 @@
-from chat_manager_examples.config import DOMAINS
 from mmar_mapi import AIMessage, Chat, FileStorage, HumanMessage, make_content
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
+
+from chat_manager_examples.config import DOMAINS
 
 
 class Dummy(SimpleTrack):

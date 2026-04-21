@@ -3,14 +3,13 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import fire
-from mmar_llm import LLMConfig
 from mmar_mapi import AIMessage, Context, HumanMessage, make_content
 from mmar_mcli import FileData, MaestroClient
 from mmar_utils import take_exactly_one
 
 FORCE = bool(int(os.environ.get("force", "0")))
 NO_INPUT = bool(int(os.environ.get("no_input", "0")))
-ADDR = os.environ.get("addresses__maestro", "localhost:7732")
+ADDR = os.environ.get("addresses__maestro", "localhost:7731")
 HEADERS_EXTRA = os.environ.get("headers_extra", None)
 CLIENT_ID = "TEST"
 
@@ -82,13 +81,13 @@ async def user_func(mc, ai_msg: AIMessage, records) -> HumanMessage:
 
 async def repl(mc, context, records):
     msg = HumanMessage(content="/start")
-    response = await mc.send_message(context, msg)
+    response = await mc.send(context, msg)
     if not response:
         raise ValueError(f"No response for context={repr(context)} and msg={repr(msg)}")
     ai_msg = take_exactly_one(response)
     while ai_msg.state != "final":
         human_msg = await user_func(mc, ai_msg, records)
-        ai_msg = take_exactly_one(await mc.send_message(context, human_msg))
+        ai_msg = take_exactly_one(await mc.send(context, human_msg))
     print(f"\nBot ({ai_msg.state})> {ai_msg.content}")
     return ai_msg.text
 
@@ -110,15 +109,24 @@ TRACKS = {"Dummy", LLM_CONFIG_WIZARD, "Chatbot"}
 
 
 def process_llm_config_wizard_result(result):
-    llm_config_json = result
-    print("Result:")
-    print(llm_config_json)
-    LLMConfig.model_validate_json(llm_config_json)
-    if not ask_is_yes("Update llm_config.json?"):
+    llm_config_toml = result
+    print("\n" + "=" * 60)
+    print("Generated LLM Hub Configuration (TOML):")
+    print("=" * 60)
+    print(llm_config_toml)
+    print("=" * 60)
+    print("\nTo use this configuration:")
+    print("1. Copy the content above to service--llm-hub/llm-config.toml")
+    print("2. Restart llm-hub: make restart-llm-hub")
+    print()
+    if not ask_is_yes("Save to llm-config.toml?"):
         print("Exit")
         return
-    Path("llm_config.json").write_text(llm_config_json)
-    print("Updated llm_config.json")
+    Path("llm-config.toml").write_text(llm_config_toml)
+    print(f"\n✓ Saved to llm-config.toml")
+    print("Next steps:")
+    print("  cp llm-config.toml service--llm-hub/llm-config.toml")
+    print("  make restart-llm-hub")
 
 
 def _make_maestro_client():

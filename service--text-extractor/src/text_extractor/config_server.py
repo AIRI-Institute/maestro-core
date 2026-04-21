@@ -1,11 +1,10 @@
 import os
 
-from mmar_ptag import LogLevelEnum
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class LoggerConfig(BaseModel):
-    level: LogLevelEnum = LogLevelEnum.DEBUG
+    level: str = "DEBUG"
     name: str = "text-extractor"
 
 

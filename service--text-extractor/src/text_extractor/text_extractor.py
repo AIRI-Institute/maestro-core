@@ -2,16 +2,20 @@ from loguru import logger
 from mmar_mapi import FileStorage
 from mmar_mapi.services import ResourceId, TextExtractorAPI
 
-from text_extractor.config import Config
 from text_extractor.converter_image_to_text import ImageToTextConverter
 from text_extractor.converter_pdf_to_text import PdfToTextConverter
 
 
 class TextExtractor(TextExtractorAPI):
-    def __init__(self, config: Config):
-        self.file_storage = FileStorage(config.files_dir)
-        self.pdf_to_text = PdfToTextConverter()
-        self.image_to_text = ImageToTextConverter()
+    def __init__(
+        self,
+        file_storage: FileStorage,
+        pdf_to_text: PdfToTextConverter,
+        image_to_text: ImageToTextConverter,
+    ):
+        self.file_storage = file_storage
+        self.pdf_to_text = pdf_to_text
+        self.image_to_text = image_to_text
 
     def extract(self, *, resource_id: ResourceId) -> ResourceId:
         logger.info(f"Received request with resource_id={resource_id}")

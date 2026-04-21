@@ -13,10 +13,9 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Literal, Union, cast, get_args, get_origin
 
 import pydantic
-from pydantic import BaseModel, Field
-
 from mmar_mapi import AIMessage, Chat, HumanMessage
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
+from pydantic import BaseModel, Field
 
 # Special state for confirmation step
 CONFIRMATION_STATE = "__CONFIRMATION__"

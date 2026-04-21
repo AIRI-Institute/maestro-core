@@ -18,9 +18,9 @@ dependencies = [
     "tesserocr~=2.8.0",
     "more_itertools~=10.7.0",
 
-    "mmar-mapi~=1.4.5",
-    "mmar-ptag~=1.0.18",
-    "mmar-utils~=1.1.11",
+    "mmar-mapi~=1.6.0",
+    "mmar-ptag~=1.1.2",
+    "mmar-utils~=1.1.18",
 ]
 
 [project.optional-dependencies]

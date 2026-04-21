@@ -1,0 +1,87 @@
+# LLM Hub OpenAI Configuration Example
+# Copy this file to config.toml and adjust values for your environment
+
+# Server configuration
+host = "0.0.0.0"
+port = 40631
+
+# Fallback behavior: if true, use default model when requested model not found
+# If false, return 404 error immediately
+fallback_to_default = true
+
+# Connection definitions
+[connections.deepseek]
+api_type = "openai"
+api_base = "https://api.deepseek.com/v1"
+api_key = "your-deepseek-api-key"
+
+[connections.openai]
+api_type = "openai"
+api_base = "https://openrouter.ai/api/v1"
+api_key = "your-openai-api-key"
+
+[connections.anthropic_glm]
+api_type = "anthropic"
+api_base = "https://api.z.ai/api/anthropic"
+api_key = "your-anthropic-token"
+max_concurrent = 2
+
+[connections.gigachat_pers]
+api_type = "gigachat"
+api_base = "https://gigachat.devices.sberbank.ru/api/v1"
+scope = "GIGACHAT_API_PERS"
+
+[connections.gigachat_corp]
+api_type = "gigachat"
+scope = "GIGACHAT_API_CORP"
+# For OAuth/authorize code flow
+auth_url = "https://oauth.sberdevices.ru/authorize"
+# Or use direct credentials
+# user = "your-client-id"
+# password = "your-client-secret"
+
+# Model routing: model_id -> "connection.target_model"
+[routing]
+# Chat models
+"gpt-4o" = "openai.gpt-4o"
+"gpt-4o-mini" = "openai.gpt-4o-mini"
+"deepseek-chat" = "deepseek.DeepChat-V3"
+"gigachat_pers" = "gigachat_pers.GigaChat"
+"gigachat_corp" = "gigachat_corp.GigaChat-2-Max"
+"gigachat_sberai" = "gigachat_sberai.GigaChat"
+
+# Embedding models
+"text-embedding-3-small" = "openai.text-embedding-3-small"
+"text-embedding-3-large" = "openai.text-embedding-3-large"
+"gigachat_embeddings" = "gigachat_pers.Embeddings"
+"gigachat_corp_embeddings" = "gigachat_corp.Embeddings"
+
+# Model metadata and limits
+[model_info.gpt-4o]
+owned_by = "openai"
+
+[model_info."claude-3-5-sonnet"]
+owned_by = "anthropic"
+caption = "Claude 3.5 Sonnet"
+max_concurrent = 2
+
+[model_info."claude-3-opus"]
+owned_by = "anthropic"
+caption = "Claude 3 Opus"
+max_concurrent = 2
+
+[model_info.gigachat_pers]
+owned_by = "sber"
+caption = "GigaChat-2-Max (pers)"
+max_concurrent = 10
+
+[model_info.gigachat_corp]
+owned_by = "corp"
+caption = "GigaChat-2-Max (corp)"
+default = true  # Mark as default (can also use default_model/default_embedding config)
+
+# Middleware (optional)
+[[before]]
+class = "middleware.module:ClassName"
+# Additional middleware-specific options
+# some_option = "value"

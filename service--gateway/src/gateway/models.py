@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from mmar_mapi import AIMessage, ChatMessage, DomainInfo, HumanMessage, ResourceId, TrackInfo
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 FileName = str
 FileData = tuple[FileName, bytes]
@@ -11,7 +11,7 @@ NamedResourceId = tuple[FileName, ResourceId]
 
 
 class Base(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     @model_validator(mode="before")  # noqa
     @classmethod
@@ -22,37 +22,37 @@ class Base(BaseModel):
 
 
 class DBChatInfoItem(Base):
-    chat_id: str = Field(alias="ChatId")
-    first_replica: str | None = Field(default=None, alias="FirstReplica")
-    first_replica_date: str | None = Field(default=None, alias="FirstReplicaDate")
-    track_id: str = Field(alias="TrackId")
+    chat_id: str
+    first_replica: str | None = None
+    first_replica_date: str | None = None
+    track_id: str
 
 
 class DBChatPreviews(Base):
-    chat_previews: Sequence[DBChatInfoItem] = Field(alias="ChatPreviews")
-
-
-class EntrypointInfo(Base):
-    entrypoint_key: str = Field(alias="EntrypointKey")
-    caption: str = Field(alias="Caption")
+    chat_previews: Sequence[DBChatInfoItem]
 
 
 class DomainsResponse(Base):
-    domains: list[DomainInfo] = Field(alias="Domains")
+    domains: list[DomainInfo]
 
 
 class TracksResponse(Base):
-    tracks: list[TrackInfo] = Field(alias="Tracks")
+    tracks: list[TrackInfo]
 
 
-class EntrypointsResponse(Base):
-    entrypoints: list[EntrypointInfo] = Field(alias="Entrypoints")
-    default_entrypoint_key: str = Field(alias="DefaultEntrypointKey")
+class ModelInfo(Base):
+    model: str
+    caption: str
+
+
+class ModelsResponse(Base):
+    models: list[ModelInfo]
+    default_model: str
 
 
 class UploadResponse(Base):
-    resource_id: ResourceId = Field(alias="ResourceId")
-    resource_name: str | None = Field(default=None, alias="ResourceName")
+    resource_id: ResourceId
+    resource_name: str | None = None
     error: str | None = None
 
 

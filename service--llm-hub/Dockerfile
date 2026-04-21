@@ -3,11 +3,11 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:c4089b0085cf4d38e38d5cdaa5e57752c1878a6f
 
 WORKDIR /app/
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-  --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-  uv sync --no-dev --prerelease=allow --refresh-package=mmar-utils --refresh-package=mmar-ptag --refresh-package=mmar-llm  --refresh-package=mmar-mimpl
+COPY pyproject.toml ./
 
-COPY pyproject.toml pyproject.toml
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev --prerelease=allow
+
 COPY src/llm_hub llm_hub
 
 ENV UV_NO_SYNC=1

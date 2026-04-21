@@ -1,21 +1,23 @@
 import asyncio
-import json
 import time
 from functools import cache, partial, wraps
 from types import SimpleNamespace
 
 from aiohttp import ClientConnectionError, ClientResponseError, FormData
 from loguru import logger
-from mmar_mapi import AIMessage, Context, FileStorage, HumanMessage, ResourceId, make_content
+from mmar_mapi import AIMessage, Context, DomainInfo, FileStorage, HumanMessage, ResourceId, TrackInfo, make_content
 from mmar_utils import on_error_log_and_none, remove_prefix_if_present, retry_on_ex
 
 from mmar_mcli.io_aiohttp import make_file_form_data, request_with_session
-from mmar_mcli.models import FileData, MaestroConfig, MessageData, RequestCall
+from mmar_mcli.models import FileData, MaestroClientConfig, MessageData, ModelsResponse, RequestCall
 
 ROUTES = SimpleNamespace(
     send="api/v0/send",
     download="api/v2/files/download_bytes",
     upload="api/v2/files/upload",
+    domains="api/v3/info/domains",
+    tracks="api/v3/info/tracks",
+    models="api/v3/models",
 )
 MESSAGE_START: MessageData = make_content(text="/start"), None
 POST_ERRORS = (asyncio.TimeoutError, ClientConnectionError, ClientResponseError)
@@ -43,7 +45,7 @@ class RemoteStorager:
         response_data = await self.request(method="post", url=self.url_upload, headers=self.headers, data=data)
         if not isinstance(response_data, dict):
             raise ValueError(f"POST {self.url_upload}: expected json, found {type(response_data)}")
-        resource_id: str = response_data["ResourceId"]
+        resource_id: str = response_data.get("ResourceId") or response_data.get("resource_id")
         return resource_id
 
     async def download_async(self, resource_id: str) -> bytes:
@@ -55,7 +57,7 @@ class RemoteStorager:
 
 
 class MaestroClientI:
-    async def send(self, context: Context, msg_data: MessageData | str) -> list[MessageData]:
+    async def send_simple(self, context: Context, msg_data: MessageData | str) -> list[MessageData]:
         pass
 
     async def upload_resource(self, file_data: FileData, client_id: str) -> str | None:
@@ -64,53 +66,52 @@ class MaestroClientI:
     async def download_resource(self, resource_id: str, client_id: str) -> bytes:
         pass
 
+    async def get_domains(self, language_code: str, client_id: str) -> list[DomainInfo]:
+        pass
 
-def parse_headers(headers: dict | str | None) -> dict | None:
-    if not headers:
-        return None
-    if isinstance(headers, dict):
-        return headers
-    if isinstance(headers, str):
-        try:
-            return json.loads(headers)
-        except Exception:
-            breakpoint()
-            logger.warning(f"Failed to parse headers: {headers}")
-            return None
-    logger.warning(f"Unexpected headers with type {type(headers)} passed: {headers}")
-    return None
+    async def get_tracks(self, language_code: str, client_id: str) -> list[TrackInfo]:
+        pass
+
+    async def get_models(self) -> ModelsResponse:
+        pass
+
+    async def send(self, context: Context, msg: HumanMessage) -> list[AIMessage] | None:
+        pass
 
 
 class MaestroClient(MaestroClientI):
-    def __init__(self, config: MaestroConfig):
-        addresses__maestro: str = getattr(config, "addresses__maestro", None) or "https://maestro.airi.net"
-        headers_extra: dict[str, str] | None = parse_headers(getattr(config, "headers_extra", None))
-        error: str = getattr(getattr(config, "res", SimpleNamespace()), "error", "Server is not available")
-        files_dir: str | None = getattr(config, "files_dir", None)
-        timeout: int = getattr(config, "timeout", 120)
-        with_retries: bool = getattr(config, "with_retries", False)
+    def __init__(self, config: MaestroClientConfig | SimpleNamespace):
+        """Initialize MaestroClient with a configuration.
 
-        self.url = fix_maestro_address(addresses__maestro) + "/" + ROUTES.send
+        Args:
+            config: Configuration object. Can be:
+                - MaestroClientConfig: Proper configuration dataclass
+                - SimpleNamespace: For backward compatibility
+                - Any object with matching attributes
+        """
+        cfg = MaestroClientConfig.create(config)
+
+        self.url = fix_maestro_address(cfg.addresses__maestro) + "/" + ROUTES.send
         logger.info(f"Creating client, maestro URL: {self.url}")
 
-        request = partial(request_with_session, timeout=timeout, headers_extra=headers_extra)
+        request = partial(request_with_session, timeout=cfg.timeout, headers_extra=cfg.headers_extra)
         request = wraps(request_with_session)(request)
-        if with_retries:
+        if cfg.with_retries:
             request = retry_on_ex(attempts=3, wait_seconds=1, catch=POST_ERRORS, logger=logger)(request)
         request = on_error_log_and_none(logger.exception)(request)
 
         self.request = request
-        self.msg_data_response_error: MessageData = make_content(text=error), None
+        self.msg_data_response_error: MessageData = make_content(text=cfg.res.error), None
 
-        self.file_storage: FileStorage | None = files_dir and FileStorage(files_dir)
+        self.file_storage: FileStorage | None = cfg.files_dir and FileStorage(cfg.files_dir)
 
     @cache
     def get_file_storage(self, client_id: str) -> FileStorage:
         return self.file_storage or RemoteStorager(self.request, self.url, client_id)
 
-    async def send(self, context: Context, msg_data: MessageData | str) -> list[MessageData]:
+    async def send_simple(self, context: Context, msg_data: MessageData | str) -> list[MessageData]:
         start = time.time()
-        msg_datas_response = await self._send(context, msg_data)
+        msg_datas_response = await self._send_simple(context, msg_data)
         elapsed = time.time() - start
 
         entrypoint_key = (context.extra or {}).get("entrypoint_key", "")
@@ -131,7 +132,32 @@ class MaestroClient(MaestroClientI):
         res: bytes = await self.get_file_storage(client_id).download_async(resource_id)
         return res
 
-    async def _download_file_data_maybe(self, msg: HumanMessage, client_id: str) -> FileData | None:
+    async def get_domains(self, language_code: str, client_id: str) -> list[DomainInfo]:
+        url = self.url.replace(ROUTES.send, ROUTES.domains)
+        params = {"language_code": language_code, "client_id": client_id}
+        response_data = await self.request(method="get", url=url, params=params)
+        if not isinstance(response_data, dict):
+            raise ValueError(f"GET {url}: expected dict, found {type(response_data)}")
+        domains_raw = response_data.get("domains", response_data)
+        return [DomainInfo.model_validate(d) for d in domains_raw]
+
+    async def get_tracks(self, language_code: str, client_id: str) -> list[TrackInfo]:
+        url = self.url.replace(ROUTES.send, ROUTES.tracks)
+        params = {"language_code": language_code, "client_id": client_id}
+        response_data = await self.request(method="get", url=url, params=params)
+        if not isinstance(response_data, dict):
+            raise ValueError(f"GET {url}: expected dict, found {type(response_data)}")
+        tracks_raw = response_data.get("tracks", response_data)
+        return [TrackInfo.model_validate(t) for t in tracks_raw]
+
+    async def get_models(self) -> ModelsResponse:
+        url = self.url.replace(ROUTES.send, ROUTES.models)
+        response_data = await self.request(method="get", url=url)
+        if not isinstance(response_data, dict):
+            raise ValueError(f"GET {url}: expected dict, found {type(response_data)}")
+        return ModelsResponse.model_validate(response_data)
+
+    async def _download_file_data_maybe(self, msg: AIMessage, client_id: str) -> FileData | None:
         resource_id = msg.resource_id
         if not resource_id:
             return None
@@ -143,7 +169,7 @@ class MaestroClient(MaestroClientI):
         resource_bytes = await self.download_resource(resource_id, client_id)
         return resource_name, resource_bytes
 
-    async def _send(self, context: Context, msg_data: MessageData | str) -> list[MessageData] | None:
+    async def _send_simple(self, context: Context, msg_data: MessageData | str) -> list[MessageData] | None:
         if isinstance(msg_data, str):
             msg_data = msg_data, None
         content, file_data = msg_data
@@ -151,14 +177,14 @@ class MaestroClient(MaestroClientI):
         resource_id = file_data and await self.upload_resource(file_data, context.client_id)
         content = make_content(content=content, resource_id=resource_id)
         msg = HumanMessage(content=content)
-        ai_messages = await self.send_message(context, msg)
+        ai_messages = await self.send(context, msg)
         if not ai_messages:
             return None
         download = partial(self._download_file_data_maybe, client_id=context.client_id)
         res = [(ai_msg.content, await download(ai_msg)) for ai_msg in ai_messages]
         return res
 
-    async def send_message(self, context: Context, msg: HumanMessage) -> list[AIMessage] | None:
+    async def send(self, context: Context, msg: HumanMessage) -> list[AIMessage] | None:
         dict_user_message = msg.model_dump()
         dict_ctx = context.model_dump()
         data_json = {"context": dict_ctx, "messages": [dict_user_message]}

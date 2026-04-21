@@ -1,22 +1,16 @@
 import os
 
-from mmar_ptag import LogLevelEnum
+from mmar_mimpl import SettingsModel
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
 
 class LoggerConfig(BaseModel):
-    level: LogLevelEnum = LogLevelEnum.DEBUG
+    level: str = "DEBUG"
     name: str = "question-detector"
 
 
-class ConfigServer(BaseSettings):
-    model_config = SettingsConfigDict(env_nested_delimiter="__", extra="ignore")
-
+class ConfigServer(SettingsModel):
     max_workers: int = 10
-    port: int = 31611
+    port: int = 11611
     logger: LoggerConfig = Field(default_factory=LoggerConfig)
-
-
-def load_config_server(env_file=None):
-    env_file = env_file or os.getenv("ENV_FILE")
-    return ConfigServer(_env_file=env_file)

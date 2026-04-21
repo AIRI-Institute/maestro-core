@@ -1,5 +1,4 @@
 from loguru import logger
-
 from mmar_mapi import AIMessage, Chat, ChatMessage, DomainInfo, TrackInfo
 from mmar_mapi.services import ChatManagerAPI
 from mmar_mapi.tracks import TrackI
@@ -7,12 +6,12 @@ from mmar_utils import pretty_line
 
 
 class ChatManagerExamples(ChatManagerAPI):
-    def __init__(self, tracks: list[TrackI], domains_captions: dict[str, str], no_such_track_text: str) -> None:
+    def __init__(self, tracks: list[TrackI], domains_captions: dict[str, str], no_such_track: str) -> None:
         self.tracks_map = {type(tr).__name__: tr for tr in tracks}
         self.domains_captions = domains_captions
         track_ids_pretty = ", ".join(self.tracks_map.keys())
         logger.info(f"Tracks loaded: [{track_ids_pretty}]")
-        self.no_such_track = AIMessage(content=no_such_track_text)
+        self.no_such_track = AIMessage(content=no_such_track)
 
     def get_domains(self, *, client_id: str, language_code: str = "ru") -> list[DomainInfo]:
         domains = [

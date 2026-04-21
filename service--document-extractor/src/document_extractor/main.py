@@ -1,6 +1,7 @@
 import os
 
-from mmar_ptag import grpc_server, init_logger, ptag_attach
+from mmar_mimpl import init_logger
+from mmar_ptag import grpc_server, ptag_attach
 from loguru import logger
 
 from document_extractor.config import Config, load_config

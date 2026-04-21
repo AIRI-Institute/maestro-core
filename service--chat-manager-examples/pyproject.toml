@@ -10,13 +10,13 @@ dependencies = [
     "pydantic-settings~=2.12.0",
     "loguru~=0.7.2",
     # replace with `~=` in the future, after eliminating provide_all_and_memoize from legacy.py
-    "dishka==1.7.2",
-
-    "mmar-mapi~=1.4.5",
-    "mmar-ptag~=1.0.18",
-    "mmar-utils~=1.1.11",
-    "mmar-llm~=2.0.6",
-    "mmar-mimpl~=1.0.1",
+    "dishka~=1.8.0",
+    "mmar-mapi~=1.6.0",
+    "mmar-ptag~=1.1.2",
+    "mmar-utils~=1.1.18",
+    "mmar-llm~=2.0.20",
+    "mmar-mimpl~=1.1.4",
+    "openai~=1.61.0",
 ]
 
 [dependency-groups]
@@ -78,6 +78,10 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = "chat_manager_examples.tracks.llm_config_wizard"
 disable_error_code = ["attr-defined", "return-value", "misc"]
+
+[[tool.mypy.overrides]]
+module = "mmar_mimpl.*"
+ignore_missing_imports = true
 
 [tool.uv]
 prerelease = "if-necessary"

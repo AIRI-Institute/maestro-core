@@ -1,14 +1,9 @@
-from types import SimpleNamespace
+from mmar_mapi import Chat, HumanMessage
+from mmar_mapi.tracks import SimpleTrack, TrackResponse
+from openai import OpenAI
 
 from chat_manager_examples.config import DOMAINS
-from mmar_mapi import AIMessage, Chat, FileStorage, HumanMessage
-from mmar_mapi.services import LLMHubAPI, LLMPayload, Message
-from mmar_mapi.tracks import SimpleTrack, TrackResponse
 
-S = SimpleNamespace(
-    EMPTY="EMPTY",
-    START="START",
-)
 RECIPE_EXAMPLE_1 = """
 Рецепт борща
 📍 *Бульон*
@@ -33,6 +28,7 @@ RECIPE_EXAMPLE_1 = """
 - [ ] уксус (2..3 столовые ложки) или выжать пол-лимона
 - [ ] томатная паста
 """.strip()
+
 SYSTEM_PROMPT = f"""Тебе пользователь на вход пришлёт рецепт. Твоя задача - преобразовать этот рецепт в формат
 - заголовок
 - этап готовки
@@ -53,16 +49,24 @@ class RecipesSummarizer(SimpleTrack):
     DOMAIN = DOMAINS.examples
     CAPTION = "👩‍🍳 Recipes Summarizer"
 
-    def __init__(self, file_storage: FileStorage, llm_hub: LLMHubAPI) -> None:
-        self.llm_hub = llm_hub
-        self.file_storage = file_storage
+    def __init__(self, oclient: OpenAI) -> None:
+        self.oclient = oclient
 
     def generate_response(self, chat: Chat, user_message: HumanMessage) -> TrackResponse:
-        text = user_message.text
-        messages = [
-            Message(role="system", content=SYSTEM_PROMPT),
-            Message(role="user", content=text),
-        ]
-        payload = LLMPayload(messages=messages)
-        response = self.llm_hub.get_response(request=payload)
-        return AIMessage(content=response)
+        last_state = chat.get_last_state()
+
+        if not last_state or last_state in ("/start", "empty"):
+            return "waiting", "Введите текст рецепта."
+
+        user_text = user_message.text
+        if not user_text:
+            return "waiting", "Введите текст рецепта."
+        response = self.oclient.chat.completions.create(
+            model=chat.context.model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_text},
+            ],
+        )
+        response_text = response.choices[0].message.content or ""
+        return "waiting", response_text

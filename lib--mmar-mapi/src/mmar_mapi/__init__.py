@@ -1,13 +1,14 @@
 from mmar_mapi.file_storage import FileStorageAPI, FileStorageBasic, FileStorage, ResourceId
 from mmar_mapi.models.base import Base
 from mmar_mapi.models.chat import Chat, Context, ChatMessage, AIMessage, HumanMessage, MiscMessage, make_content, Content, BaseMessage
-from mmar_mapi.models.enums import MTRSLabelEnum, DiagnosticsXMLTagEnum, MTRSXMLTagEnum, DoctorChoiceXMLTagEnum
+from mmar_mapi.models.enums import MTRSLabelEnum, DiagnosticsXMLTagEnum, MTRSXMLTagEnum, DoctorChoiceXMLTagEnum, UncertaintyXMLTagEnum
 from mmar_mapi.models.tracks import TrackInfo, DomainInfo
 from mmar_mapi.models.widget import Widget
 from mmar_mapi.utils import make_session_id, chunked
 from mmar_mapi.xml_parser import XMLParser
 from mmar_mapi.utils_import import load_main_objects
 from mmar_mapi.decorators_maybe_lru_cache import maybe_lru_cache
+from mmar_mapi.legacy import parse_chat_compat, ChatItem, OuterContextItem, ReplicaItem, InnerContextItem, convert_chat_to_chat_item, convert_chat_item_to_chat
 
 __all__ = [
     "AIMessage",
@@ -19,8 +20,10 @@ __all__ = [
     "Context",
     "DiagnosticsXMLTagEnum",
     "DoctorChoiceXMLTagEnum",
+    "UncertaintyXMLTagEnum",
     "DomainInfo",
     "FileStorage",
+    "FileStorageBasic",
     "FileStorageAPI",
     "HumanMessage",
     "MTRSLabelEnum",
@@ -35,4 +38,11 @@ __all__ = [
     "make_content",
     "make_session_id",
     "maybe_lru_cache",
+    "OuterContextItem",
+    "ReplicaItem",
+    "InnerContextItem",
+    "ChatItem",
+    "parse_chat_compat",
+    "convert_chat_to_chat_item",
+    "convert_chat_item_to_chat",
 ]

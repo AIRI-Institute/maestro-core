@@ -23,6 +23,8 @@
 
 **ReasoningContext** -- содержит исходные данные, конфигурацию LLM и историю выполнения.
 
+**MetricBase** -- абстрактный класс для подключения метрик оценки к шагам и цепочкам. Принимает текстовый вывод, возвращает числовое значение. Внутри может быть что угодно: подсчёт слов, LLM-as-a-judge, парсинг файла. При использовании рефлексии результаты метрик автоматически передаются LLM в промпт (через `ReflectionOptions.include_metric_scores=True`), а пользователь может добавить произвольный контекст через `ReflectionOptions.extra_feedback`.
+
 ## Полный пример: Медицинская диагностика
 
 ```python
@@ -31,15 +33,6 @@ from mmar_carl import (
     ReasoningChain, StepDescription, ReasoningContext,
     Language, ContextSearchConfig
 )
-from mmar_llm import LLMHub, LLMConfig
-import json
-
-# Создание LLMHub
-def create_entrypoints(entrypoints_path: str):
-    with open(entrypoints_path, encoding="utf-8") as f:
-        config_data = json.load(f)
-    entrypoints_config = LLMConfig.model_validate(config_data)
-    return LLMHub(entrypoints_config)
 
 # Определение цепочки медицинских рассуждений
 CLINICAL_REASONING = [
@@ -115,9 +108,6 @@ patient_data = """
 Инструментальные данные: ЭКГ - признаки гипертрофии левого желудочка
 """
 
-# Инициализация контекста
-entrypoints = create_entrypoints("entrypoints.json")
-
 # Системный промпт для медицинской экспертизы
 medical_system_prompt = """
 Вы врач-эксперт с многолетним опытом клинической практики.
@@ -132,8 +122,8 @@ medical_system_prompt = """
 
 context = ReasoningContext(
     outer_context=patient_data,
-    api=endpoint_key,  # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max",
+    api=model,  # Автоматическое определение типа и создание LLM клиента
+    model="gigachat-2-max",
     language=Language.RUSSIAN,
     retry_max=3,
     system_prompt=medical_system_prompt.strip()

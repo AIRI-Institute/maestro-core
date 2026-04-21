@@ -1,7 +1,8 @@
-from chat_manager_examples.config import DOMAINS
 from mmar_mapi import Chat, FileStorage, HumanMessage
 from mmar_mapi.services import DocExtractionOutput, DocumentExtractorAPI
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
+
+from chat_manager_examples.config import DOMAINS
 
 
 class DocumentDescriber(SimpleTrack):

@@ -1,7 +1,7 @@
 [project]
 name = "mmar-llm"
 # dynamic version is not supported yet on uv_build
-version = "2.0.15"
+version = "2.0.20"
 description = "llm wrappers for multimodal architectures team"
 authors = [{name = "Eugene Tagin", email = "tagin@airi.net"}]
 license = "MIT"
@@ -27,12 +27,11 @@ classifiers = [
 dependencies = [
     "requests~=2.32.5",
     "gigachat==0.2.0",
-    "tiktoken==0.8.0",
+    "tiktoken==0.12.0",
     "openai>=1.61.0",
     "loguru~=0.7.3",
-
-    "mmar-mapi~=1.4.2",
-    "mmar-utils~=1.1.15",
+    "mmar-mapi~=1.6.0",
+    "mmar-utils~=1.1.18",
 ]
 
 [build-system]

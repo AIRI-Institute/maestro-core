@@ -1,12 +1,9 @@
-import os
 from functools import cached_property
 from typing import Annotated
 
-from mmar_ptag import LogLevelEnum
+from mmar_mimpl import ResourcesModel, SettingsModel
 from mmar_utils import Message, validate_no_underscores
-from mmar_mimpl import ResourcesModel
 from pydantic import AfterValidator, BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DESCRIPTION = "Я информационная система, созданная в научно-исследовательских целях – AI-ассистент."
 AUTH = "Для авторизации используйте команду /authorize [ПАРОЛЬ]."
@@ -24,14 +21,7 @@ def validate_commands_dict(commands: dict[str, str]) -> dict[str, str]:
 
 class LoggerConfig(BaseModel):
     name: str = "telegram-b2c"
-    level: LogLevelEnum = LogLevelEnum.DEBUG
-
-
-class TelethonConfig(BaseModel):
-    api_id: int = 0
-    api_hash: str = ""
-    api_bot_token: str = ""
-    session_path: str = "/mnt/data/maestro/local/tg/session.session"
+    level: str = "DEBUG"
 
 
 class TgApplicationConfig(BaseModel):
@@ -46,11 +36,14 @@ class TgApplicationConfig(BaseModel):
 
     user_persistence_path: str = "/mnt/data/maestro/local/tg/user_persistence.pkl"
 
+    # Proxy settings for SOCKS5/HTTP proxy
+    proxy_url: str | None = None  # e.g., "socks5://proxy.example.com:1080" or "http://proxy.example.com:8080"
+
 
 class AuthConfig(BaseModel):
     disabled: bool = False
     tg_password: str = "example_password"
-    whitelist_path: str = "/mnt/data/maestro/local/tg/white_list.csv"
+    whitelist_path: str | None = None
     admin_path: str | None = None
 
 
@@ -58,6 +51,7 @@ class BotConfig(BaseModel):
     commands: Annotated[dict[str, str], AfterValidator(validate_commands_dict)]
     show_end_button: bool = True
     is_dummy_maestro: bool = False
+    dummy_message: str = ""
     allowed_files_extensions: list[str] = ["pdf", "dcm"]
 
 
@@ -90,24 +84,16 @@ class ResourcesConfig(ResourcesModel):
         return res
 
 
-class Config(BaseSettings):
-    model_config = SettingsConfigDict(env_nested_delimiter="__", extra="ignore")
-    version: str = "dev"
+class Config(SettingsModel):
     files_dir: str | None = "/mnt/data/maestro/files"
 
     logger: LoggerConfig = Field(default_factory=LoggerConfig)
     tg_application: TgApplicationConfig = Field(default_factory=TgApplicationConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
     bot: BotConfig = Field(default_factory=BotConfig)
-    telethon: TelethonConfig = Field(default_factory=TelethonConfig)
     res: ResourcesConfig = Field(default_factory=ResourcesConfig)
 
-    addresses__maestro: str = Field(default='http://gateway:7732')
+    addresses__maestro: str = Field(default="http://gateway:7731")
     timeout: int = 120
     error: str = "Сервер не доступен. Повторите запрос позднее."
     headers_extra: dict[str, str] | None = None
-
-
-def load_config(env_file: str | None = None) -> Config:
-    env_file = env_file or os.getenv("ENV_FILE")
-    return Config(_env_file=env_file)

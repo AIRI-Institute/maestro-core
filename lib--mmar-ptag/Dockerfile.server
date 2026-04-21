@@ -1,0 +1,26 @@
+# Dockerfile for mmar-ptag server
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY pyproject.toml .
+COPY README.md .
+COPY src/ ./src/
+COPY examples/server*.py ./examples/
+
+# Install uv
+RUN pip install --no-cache-dir uv
+
+# Install dependencies
+RUN uv pip install --system -e .
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Run the server
+CMD ["python", "examples/server_api_str.py"]

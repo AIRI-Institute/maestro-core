@@ -73,12 +73,10 @@ chain = ReasoningChain(
 
 ```python
 from mmar_carl import ReasoningContext, Language
-from mmar_llm import LLMHub
 
 context = ReasoningContext(
     outer_context=input_data,  # Исходные данные для анализа
-    api=entrypoints,   # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max",     # Ключ точки входа LLM
+    model="gigachat-2-max",
     language=Language.RUSSIAN,  # Язык рассуждений
     retry_max=3                # Максимальное количество повторов при ошибках
 )
@@ -255,43 +253,15 @@ step = StepDescription(
 # Рассуждения на русском языке
 context_ru = ReasoningContext(
     outer_context=data,
-    api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max",
+    model="gigachat-2-max",
     language=Language.RUSSIAN
 )
 
 # Рассуждения на английском языке
 context_en = ReasoningContext(
     outer_context=data,
-    api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max",
+    model="gigachat-2-max",
     language=Language.ENGLISH
-)
-```
-
-## Интеграция с mmar-llm
-
-Прямая интеграция с LLMHub без излишних абстракций:
-
-```python
-from mmar_llm import LLMHub, LLMConfig
-import json
-
-# Создание LLMHub из конфигурационного файла
-def create_entrypoints(entrypoints_path: str):
-    with open(entrypoints_path, encoding="utf-8") as f:
-        config_data = json.load(f)
-
-    entrypoints_config = LLMConfig.model_validate(config_data)
-    return LLMHub(entrypoints_config)
-
-entrypoints = create_entrypoints("entrypoints.json")
-
-# Использование в контексте рассуждений
-context = ReasoningContext(
-    outer_context=data,
-    api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max"
 )
 ```
 
@@ -396,8 +366,7 @@ financial_system_prompt = """
 # Создание контекста выполнения
 context = ReasoningContext(
     outer_context=financial_data,
-    api=entrypoints,  # Автоматическое определение типа и создание LLM клиента
-    endpoint_key="gigachat-2-max",
+    model="gigachat-2-max",
     language=Language.RUSSIAN,
     retry_max=3,
     system_prompt=financial_system_prompt.strip()
@@ -485,6 +454,183 @@ LEGAL_ANALYSIS = [
 ]
 ```
 
+## Оценка качества: MetricBase
+
+CARL поддерживает подключение произвольных метрик к шагам и к цепочке в целом.
+Метрика реализует абстрактный класс `MetricBase` — принимает текстовый вывод и возвращает числовое значение.
+Внутри может быть что угодно: подсчёт слов, парсинг файла, косинусное сходство, LLM-as-a-judge.
+
+### Абстрактный класс
+
+```python
+from mmar_carl import MetricBase
+
+class WordCountMetric(MetricBase):
+    @property
+    def name(self) -> str:
+        return "word_count"          # ключ в словаре результатов
+
+    async def compute_async(self, text: str) -> float:
+        return float(len(text.split()))
+```
+
+**Контракт:**
+
+- `name` (property) — уникальное имя; используется как ключ в `StepExecutionResult.metrics` / `ReasoningResult.metrics`
+- `compute_async(text)` — асинхронный метод, возвращает `float`; вызывается после успешного выполнения шага / цепочки
+- `compute(text)` — синхронная обёртка через `asyncio.run()`
+
+### Метрика на шаге
+
+```python
+from mmar_carl import LLMStepDescription
+
+step = LLMStepDescription(
+    number=1,
+    title="Анализ данных",
+    aim="Провести анализ финансовых показателей",
+    metrics=[WordCountMetric()],
+)
+```
+
+После выполнения шага оценки доступны в `StepExecutionResult.metrics`:
+
+```python
+result = chain.execute(context)
+print(result.step_results[0].metrics)
+# {'word_count': 47.0}
+```
+
+### Метрика на цепочке
+
+Цепочковые метрики вычисляются на финальном выводе (`get_final_output()`):
+
+```python
+chain = ReasoningChain(
+    steps=steps,
+    metrics=[WordCountMetric(), KeywordCoverageMetric(["риск", "рост"])],
+)
+
+result = chain.execute(context)
+print(result.metrics)
+# {'word_count': 82.0, 'keyword_coverage': 0.5}
+```
+
+### Примеры готовых метрик
+
+```python
+class SentenceLengthMetric(MetricBase):
+    """Среднее число слов в предложении."""
+
+    @property
+    def name(self) -> str:
+        return "avg_sentence_length"
+
+    async def compute_async(self, text: str) -> float:
+        sentences = [s.strip() for s in text.split(".") if s.strip()]
+        if not sentences:
+            return 0.0
+        return sum(len(s.split()) for s in sentences) / len(sentences)
+
+
+class KeywordCoverageMetric(MetricBase):
+    """Доля найденных ключевых слов (0.0 – 1.0)."""
+
+    def __init__(self, keywords: list[str]):
+        self._keywords = [kw.lower() for kw in keywords]
+
+    @property
+    def name(self) -> str:
+        return "keyword_coverage"
+
+    async def compute_async(self, text: str) -> float:
+        if not self._keywords:
+            return 1.0
+        lowered = text.lower()
+        found = sum(1 for kw in self._keywords if kw in lowered)
+        return found / len(self._keywords)
+
+
+class LLMJudgeMetric(MetricBase):
+    """LLM-as-a-judge: запрашивает LLM оценить текст и возвращает число."""
+
+    def __init__(self, llm_client, scale: int = 10):
+        self._client = llm_client
+        self._scale = scale
+
+    @property
+    def name(self) -> str:
+        return "llm_judge_score"
+
+    async def compute_async(self, text: str) -> float:
+        prompt = (
+            f"Rate the quality of the following text on a scale from 0 to {self._scale}. "
+            f"Return only a single number.\n\nText:\n{text}"
+        )
+        response = await self._client.get_response(prompt)
+        import re
+        match = re.search(r"\d+(?:\.\d+)?", response)
+        return float(match.group()) if match else 0.0
+```
+
+### Поведение при ошибках
+
+- Метрика вычисляется только для **успешно** завершённых шагов; шаги с ошибками пропускаются
+- Исключение внутри `compute_async` **не прерывает** выполнение цепочки — ошибка логируется, метрика пропускается
+- Множество метрик на одном шаге независимы: сбой одной не влияет на остальные
+
+### Сериализация
+
+Числовые оценки включаются в `to_dict()`:
+
+```python
+result.to_dict()["metrics"]                       # оценки цепочки
+result.to_dict()["step_results"][0]["metrics"]    # оценки шага
+```
+
+Сами объекты метрик из JSON сериализации **исключены** (`exclude=True`) — они содержат исполняемый код.
+
+### Метрики и рефлексия
+
+При вызове `chain.reflect()` результаты метрик автоматически включаются в промпт рефлексии
+(через `ReflectionOptions.include_metric_scores=True`, включено по умолчанию).
+LLM видит конкретные числовые сигналы качества и может ссылаться на них в рекомендациях.
+
+Дополнительно пользователь может передать произвольный контекст через `ReflectionOptions.extra_feedback`:
+
+```python
+from mmar_carl import ReflectionOptions
+
+result = chain.execute(context)
+
+# Метрики автоматически попадают в промпт рефлексии
+reflection = chain.reflect(
+    task_description="Анализ финансовых данных",
+    options=ReflectionOptions(
+        include_metric_scores=True,          # True по умолчанию
+        extra_feedback={                     # опциональный пользовательский контекст
+            "domain": "финансовый анализ",
+            "audience": "совет директоров",
+            "priority": "лаконичность",
+        },
+    ),
+)
+```
+
+`extra_feedback` принимает как словарь (с метками), так и обычную строку:
+
+```python
+options = ReflectionOptions(
+    extra_feedback="Фокус на шаге 2: улучшить охват ключевых слов.",
+)
+```
+
+| Параметр                | Тип                     | Описание                                      |
+| ----------------------- | ----------------------- | --------------------------------------------- |
+| `include_metric_scores` | `bool` (default `True`) | Включить оценки MetricBase в промпт рефлексии |
+| `extra_feedback`        | `dict \| str \| None`   | Дополнительный пользовательский контекст      |
+
+Подробный пример: `examples/reflection_metrics_example.py` (`make example-reflection-metrics`).
 
 ## Преимущества использования CARL
 
@@ -494,5 +640,6 @@ LEGAL_ANALYSIS = [
 - **🌍 Многоязычность** -- встроенная поддержка русского и английского
 - **🏗️ Универсальность** -- применимость к любой предметной области
 - **🔧 Гибкость конфигурации** -- тонкая настройка стратегий поиска
+- **📊 Оценка качества** -- подключение метрик к шагам и цепочкам через `MetricBase`
 - **⚙️ Готовность к продакшену** -- обработка ошибок, повторные попытки, мониторинг
 - **🔗 Простая интеграция** -- прямая работа с mmar-llm без излишних абстракций

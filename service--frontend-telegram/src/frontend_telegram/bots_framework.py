@@ -12,10 +12,10 @@ from telegram.error import BadRequest
 from telegram.ext import BaseHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
 
 from frontend_telegram.authentication import is_authorized
+from frontend_telegram.auth_manager import AuthManager
 from frontend_telegram.config import Config
 from frontend_telegram.custom_context import AssistantContext
-from frontend_telegram.dependencies import Dependencies
-from mmar_mcli import MESSAGE_START, MessageData
+from mmar_mcli import MaestroClient, MESSAGE_START, MessageData
 from frontend_telegram.io_telegram import (
     extract_content,
     extract_file_data,
@@ -86,7 +86,7 @@ async def _process_and_response_inner(
         client_id = remove_prefix_if_present(ctx_bot.cfg.tg_application.handle, "@")
         chat_context = chat_context.model_copy(update={"client_id": client_id})
 
-    msg_datas_response: list[MessageData] = await ctx_bot.deps.maestro_client.send(chat_context, msg)
+    msg_datas_response: list[MessageData] = (await ctx_bot.maestro_client.send_simple(chat_context, msg)) or []
     # only one command supported
     command: dict | None = None
     for msg_data_response in msg_datas_response:
@@ -179,7 +179,7 @@ async def _start_bot(
     ctx_bot: CtxBot,
     track_id: str,
 ) -> None:
-    if not is_authorized(upd, context, ctx_bot.deps.auth_manager):
+    if not is_authorized(upd, context, ctx_bot.auth_manager):
         return await send_messages(upd, context, ctx_bot.cfg.res.reject_access)
     chat_context = Context(
         client_id=ctx_bot.cfg.tg_application.handle[1:],
@@ -200,8 +200,11 @@ def make_fallback(end_button: str, end_message: str) -> BaseHandler | None:
     return fallback
 
 
-def create_bot_configuration(deps: Dependencies) -> BotConfiguration:
-    config: Config = deps.config
+def create_bot_configuration(
+    config: Config,
+    maestro_client: MaestroClient,
+    auth_manager: AuthManager,
+) -> BotConfiguration:
     commands = config.bot.commands
     end_button = config.res.end_button
     end_message = config.res.end_message
@@ -212,8 +215,9 @@ def create_bot_configuration(deps: Dependencies) -> BotConfiguration:
     end_markup = make_inline_kbd([[f"{END_DATA}:{end_button}"]]) if config.bot.show_end_button else None
 
     ctx_bot = SimpleNamespace(
-        cfg=deps.config,
-        deps=deps,
+        cfg=config,
+        maestro_client=maestro_client,
+        auth_manager=auth_manager,
         end_markup=end_markup,
     )
     wrap = partial(partial, ctx_bot=ctx_bot)

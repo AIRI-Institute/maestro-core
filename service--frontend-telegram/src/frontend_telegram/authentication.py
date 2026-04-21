@@ -3,8 +3,7 @@ from pathlib import Path
 from loguru import logger
 from telegram import Update
 
-from frontend_telegram.auth_manager import add_to_authlist
-from frontend_telegram.auth_manager import AuthManager
+from frontend_telegram.auth_manager import AuthManager, add_to_authlist
 from frontend_telegram.config import Config
 from frontend_telegram.custom_context import AssistantContext
 from frontend_telegram.utils_telegram import get_user_id_username

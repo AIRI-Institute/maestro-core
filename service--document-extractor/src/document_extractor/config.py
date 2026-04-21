@@ -1,7 +1,6 @@
 import os
 from typing import Literal
 
-from mmar_ptag import LogLevelEnum
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,7 +9,7 @@ Device = Literal["CPU", "CUDA"]
 
 class LoggerConfig(BaseModel):
     name: str = "ocr"
-    level: LogLevelEnum = LogLevelEnum.DEBUG
+    level: str = "DEBUG"
 
 
 class ServerConfig(BaseModel):

@@ -2,12 +2,11 @@ from enum import StrEnum
 from typing import Any, cast
 
 from loguru import logger
-
-from chat_manager_examples.config import DOMAINS
-from mmar_llm import LLMConfig, LLMEndpointConfig
 from mmar_mapi import AIMessage, Chat, HumanMessage, make_content
 from mmar_mapi.models.widget import Widget
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
+
+from chat_manager_examples.config import DOMAINS
 
 STATES = [  # type: ignore[misc]
     "EMPTY",  # Initial state
@@ -20,12 +19,12 @@ STATES = [  # type: ignore[misc]
     "GIGACHAT_CLIENT_SECRET",  # Entering client secret
     "GIGACHAT_AUTHORIZATION_KEY",  # Entering authorization_key
     "GIGACHAT_CAPTION",  # Entering caption
-    "GIGACHAT_KEY",  # Entering key
-    "OPENROUTER_MODEL_ID",  # Entering OpenRouter model ID
-    "OPENROUTER_API_KEY",  # Entering API key
-    "OPENROUTER_CAPTION",  # Entering caption
-    "OPENROUTER_KEY",  # Entering key
-    "FINAL_DEFAULT_ENDPOINT",  # Setting default endpoint
+    "GIGACHAT_MODEL_ID",  # Entering model ID
+    "OPENAI_MODEL_ID",  # Entering OpenAI model ID
+    "OPENAI_API_KEY",  # Entering API key
+    "OPENAI_CAPTION",  # Entering caption
+    "OPENAI_MODEL_ID_FINAL",  # Entering final model ID
+    "FINAL_DEFAULT_MODEL",  # Setting default model
     "FINAL",
 ]
 S = cast(StrEnum, StrEnum("State", STATES))
@@ -40,12 +39,12 @@ class LLMConfigWizard(SimpleTrack):
     def __init__(self) -> None:
         # todo eliminate hotfixes: track should be stateless
         self.last_session_id: str | None = None
-        self.collected_endpoints: list[dict[str, Any]] = []
-        self.current_endpoint: dict[str, Any] = {}
+        self.collected_connections: list[dict[str, Any]] = []
+        self.current_connection: dict[str, Any] = {}
 
     def _clean(self):
-        self.collected_endpoints = []
-        self.current_endpoint = {}
+        self.collected_connections = []
+        self.current_connection = {}
 
     def generate_response(self, chat: Chat, user_message: HumanMessage) -> TrackResponse:
         sid = chat.context.session_id
@@ -63,32 +62,26 @@ class LLMConfigWizard(SimpleTrack):
         last_ai = next((m for m in reversed(chat.messages) if isinstance(m, AIMessage)), None)
         if last_ai and last_ai.extra:
             wizard_data = last_ai.extra.get("wizard_data", {})
-            self.collected_endpoints = wizard_data.get("collected_endpoints", [])
-            self.current_endpoint = wizard_data.get("current_endpoint", {})
+            self.collected_connections = wizard_data.get("collected_connections", [])
+            self.current_connection = wizard_data.get("current_connection", {})
 
         if state == S.EMPTY:
             return S.CHOOSE_PROVIDER, self._create_provider_selection()
 
         elif state == S.CHOOSE_PROVIDER:
             if text == "Gigachat":
-                self.current_endpoint = {"provider": "gigachat"}
+                self.current_connection = {"provider": "gigachat"}
                 return S.GIGACHAT_BASE_URL, self._ask_gigachat_base_url()
-            elif text == "OpenRouter":
-                self.current_endpoint = {"provider": "openrouter"}
-                return S.OPENROUTER_MODEL_ID, self._ask_openrouter_model_id()
+            elif text == "OpenAI":
+                self.current_connection = {"provider": "openai"}
+                return S.OPENAI_MODEL_ID, self._ask_openai_model_id()
             elif text.lower() == "exit":
-                if not self.collected_endpoints:
-                    config = LLMConfig(endpoints=[], default_endpoint_key="", warmup=False)
-                    return S.FINAL, config.model_dump_json(indent=2)
-                if len(self.collected_endpoints) == 1:
-                    default_key = self.collected_endpoints[0]["key"]
-                    config = LLMConfig(
-                        endpoints=self.collected_endpoints,
-                        default_endpoint_key=default_key,
-                        warmup=False,
-                    )
-                    return S.FINAL, config.model_dump_json(indent=2)
-                return S.FINAL_DEFAULT_ENDPOINT, self._ask_default_endpoint()
+                if not self.collected_connections:
+                    return S.FINAL, self._generate_toml_config()
+                if len(self.collected_connections) == 1:
+                    default_key = self.collected_connections[0]["key"]
+                    return S.FINAL, self._generate_toml_config(default_key)
+                return S.FINAL_DEFAULT_MODEL, self._ask_default_model()
             else:
                 return S.CHOOSE_PROVIDER, self._create_provider_selection("Select again")
 
@@ -99,87 +92,81 @@ class LLMConfigWizard(SimpleTrack):
             if base_url and not base_url.startswith("http"):
                 return S.GIGACHAT_BASE_URL, f"Unexpected base_url: {base_url}, try again"
 
-            self.current_endpoint["base_url"] = base_url or "https://gigachat.devices.sberbank.ru/api/v1"
+            self.current_connection["base_url"] = base_url or "https://gigachat.devices.sberbank.ru/api/v1"
             return S.GIGACHAT_AUTH_METHOD, self._ask_gigachat_auth_method()
 
         elif state == S.GIGACHAT_AUTH_METHOD:
             if text == "user/password":
-                self.current_endpoint["auth_method"] = "user/password"
+                self.current_connection["auth_method"] = "user/password"
                 return S.GIGACHAT_USER, self._ask_gigachat_user()
             elif text == "authorization_key":
-                self.current_endpoint["auth_method"] = "authorization_key"
+                self.current_connection["auth_method"] = "authorization_key"
                 return S.GIGACHAT_AUTHORIZATION_KEY, self._ask_gigachat_authorization_key()
             else:
-                self.current_endpoint["auth_method"] = "client_id/client_secret"
+                self.current_connection["auth_method"] = "client_id/client_secret"
                 return S.GIGACHAT_CLIENT_ID, self._ask_gigachat_client_id()
 
         elif state == S.GIGACHAT_USER:
-            self.current_endpoint["user"] = text
+            self.current_connection["user"] = text
             return S.GIGACHAT_PASSWORD, self._ask_gigachat_password()
 
         elif state == S.GIGACHAT_PASSWORD:
-            self.current_endpoint["password"] = text
+            self.current_connection["password"] = text
             return S.GIGACHAT_CAPTION, self._ask_gigachat_caption()
 
         elif state == S.GIGACHAT_CLIENT_ID:
-            self.current_endpoint["client_id"] = text
+            self.current_connection["client_id"] = text
             return S.GIGACHAT_CLIENT_SECRET, self._ask_gigachat_client_secret()
 
         elif state == S.GIGACHAT_CLIENT_SECRET:
-            self.current_endpoint["client_secret"] = text
+            self.current_connection["client_secret"] = text
             return S.GIGACHAT_CAPTION, self._ask_gigachat_caption()
 
         elif state == S.GIGACHAT_AUTHORIZATION_KEY:
-            self.current_endpoint["authorization_key"] = text
+            self.current_connection["authorization_key"] = text
             return S.GIGACHAT_CAPTION, self._ask_gigachat_caption()
 
         elif state == S.GIGACHAT_CAPTION:
-            self.current_endpoint["caption"] = text or "Gigachat"
-            return S.GIGACHAT_KEY, make_content(text=f"Enter endpoint key (default: {GIGACHAT_DEFAULT_KEY}):")
+            self.current_connection["caption"] = text or "Gigachat"
+            return S.GIGACHAT_MODEL_ID, make_content(text=f"Enter model ID (default: {GIGACHAT_DEFAULT_KEY}):")
 
-        elif state == S.GIGACHAT_KEY:
+        elif state == S.GIGACHAT_MODEL_ID:
             if text == "":
                 text = GIGACHAT_DEFAULT_KEY
             text = text.strip().strip("..")
             if not text:
-                return S.GIGACHAT_KEY, make_content(text=f"Invalid gigachat key: '{text}', choose again")
+                return S.GIGACHAT_MODEL_ID, make_content(text=f"Invalid model ID: '{text}', choose again")
 
             key = text or GIGACHAT_DEFAULT_KEY
-            self.current_endpoint["key"] = key
-            self._finalize_gigachat_endpoint()
+            self.current_connection["key"] = key
+            self._finalize_gigachat_connection()
             return S.CHOOSE_PROVIDER, self._create_provider_selection()
 
-        elif state == S.OPENROUTER_MODEL_ID:
+        elif state == S.OPENAI_MODEL_ID:
             if not text:
-                return S.OPENROUTER_MODEL_ID, self._ask_openrouter_model_id()
-            self.current_endpoint["model_id"] = text
-            return S.OPENROUTER_API_KEY, self._ask_openrouter_api_key()
+                return S.OPENAI_MODEL_ID, self._ask_openai_model_id()
+            self.current_connection["model_id"] = text
+            return S.OPENAI_API_KEY, self._ask_openai_api_key()
 
-        elif state == S.OPENROUTER_API_KEY:
+        elif state == S.OPENAI_API_KEY:
             if not text:
-                return S.OPENROUTER_API_KEY, self._ask_openrouter_api_key()
-            self.current_endpoint["api_key"] = text
-            return S.OPENROUTER_CAPTION, self._ask_openrouter_caption()
+                return S.OPENAI_API_KEY, self._ask_openai_api_key()
+            self.current_connection["api_key"] = text
+            return S.OPENAI_CAPTION, self._ask_openai_caption()
 
-        elif state == S.OPENROUTER_CAPTION:
-            self.current_endpoint["caption"] = text or self.current_endpoint["model_id"]
-            return S.OPENROUTER_KEY, self._ask_openrouter_key()
+        elif state == S.OPENAI_CAPTION:
+            self.current_connection["caption"] = text or self.current_connection["model_id"]
+            return S.OPENAI_MODEL_ID_FINAL, self._ask_openai_model_id_final()
 
-        elif state == S.OPENROUTER_KEY:
-            self.current_endpoint["key"] = text or f"open-router_{self.current_endpoint['model_id']}"
-            self._finalize_openrouter_endpoint()
+        elif state == S.OPENAI_MODEL_ID_FINAL:
+            self.current_connection["key"] = text or f"openai_{self.current_connection['model_id']}"
+            self._finalize_openai_connection()
             return S.CHOOSE_PROVIDER, self._create_provider_selection()
 
         # Finalization
-        elif state == S.FINAL_DEFAULT_ENDPOINT:
-            default_key = text or self.collected_endpoints[0]["key"]
-            endpoints_list = [LLMEndpointConfig(**ep) for ep in self.collected_endpoints]
-            config = LLMConfig(
-                endpoints=endpoints_list,
-                default_endpoint_key=default_key,
-                warmup=False,
-            )
-            return S.FINAL, config.model_dump_json(indent=2)  # type: ignore[attr-defined]
+        elif state == S.FINAL_DEFAULT_MODEL:
+            default_key = text or self.collected_connections[0]["key"]
+            return S.FINAL, self._generate_toml_config(default_key)
 
         elif state == S.FINAL:
             return S.FINAL, "Exit"
@@ -188,8 +175,9 @@ class LLMConfigWizard(SimpleTrack):
         return S.FINAL, "Invalid input. Exit"  # type: ignore[attr-defined]
 
     def _create_provider_selection(self, text=None) -> TrackResponse:
-        text = text or f"Total configured endpoints: {len(self.collected_endpoints)}. What would you like to configure?"
-        return make_content(text=text, widget=Widget.make_buttons(["Gigachat", "OpenRouter", "Exit"]))
+        if not text:
+            text = f"Total configured connections: {len(self.collected_connections)}. What would you like to configure?"
+        return make_content(text=text, widget=Widget.make_buttons(["Gigachat", "OpenAI", "Exit"]))
 
     def _ask_gigachat_base_url(self) -> dict:
         gigachat_base_url = "https://gigachat.devices.sberbank.ru/api/v1"
@@ -223,7 +211,7 @@ class LLMConfigWizard(SimpleTrack):
     def _ask_gigachat_caption(self) -> dict:
         return make_content(text="Enter display name (default: Gigachat):", widget=Widget.make_buttons(["Gigachat"]))
 
-    def _ask_openrouter_model_id(self) -> dict:
+    def _ask_openai_model_id(self) -> dict:
         buttons = [
             "google/gemini-2.0-flash-001",
             "deepseek/deepseek-chat-v3-0324",
@@ -232,69 +220,119 @@ class LLMConfigWizard(SimpleTrack):
         ]
         return make_content(text="Enter model ID", widget=Widget.make_buttons(buttons))
 
-    def _ask_openrouter_api_key(self) -> dict:
+    def _ask_openai_api_key(self) -> dict:
         return make_content(text="Enter API key:")
 
-    def _ask_openrouter_caption(self) -> dict:
-        model_id = self.current_endpoint.get("model_id", "")
+    def _ask_openai_caption(self) -> dict:
+        model_id = self.current_connection.get("model_id", "")
         return make_content(text=f"Enter display name (default: {model_id}):", widget=Widget.make_buttons([model_id]))
 
-    def _ask_openrouter_key(self) -> dict:
-        model_id = self.current_endpoint.get("model_id", "")
-        default_key = f"open-router_{model_id}"
-        return make_content(
-            text=f"Enter endpoint key (default: {default_key}):", widget=Widget.make_buttons([default_key])
-        )
+    def _ask_openai_model_id_final(self) -> dict:
+        model_id = self.current_connection.get("model_id", "")
+        default_key = f"openai_{model_id}"
+        return make_content(text=f"Enter model ID (default: {default_key}):", widget=Widget.make_buttons([default_key]))
 
-    def _ask_default_endpoint(self) -> dict:
-        keys = [ep["key"] for ep in self.collected_endpoints]
-        return make_content(text="Select default endpoint:", widget=Widget.make_buttons(keys))
+    def _ask_default_model(self) -> dict:
+        keys = [ep["key"] for ep in self.collected_connections]
+        return make_content(text="Select default model:", widget=Widget.make_buttons(keys))
 
     # Data processing methods
-    def _finalize_gigachat_endpoint(self):
-        endpoint = {
-            "key": self.current_endpoint["key"],
-            "descriptor": "gigachat",
-            "caption": self.current_endpoint["caption"],
-            "args": {
-                "base_url": self.current_endpoint["base_url"],
-                #                "auth_method": self.current_endpoint["auth_method"],
-            },
+    def _finalize_gigachat_connection(self):
+        auth_method = self.current_connection["auth_method"]
+        connection = {
+            "key": self.current_connection["key"],
+            "provider": "gigachat",
+            "connection_name": f"gigachat_{self.current_connection['key']}",
+            "caption": self.current_connection["caption"],
+            "base_url": self.current_connection["base_url"],
+            "auth_method": auth_method,
         }
 
-        auth_method = self.current_endpoint["auth_method"]
         if auth_method == "user/password":
-            endpoint["args"]["user"] = self.current_endpoint["user"]
-            endpoint["args"]["password"] = self.current_endpoint["password"]
+            connection["user"] = self.current_connection["user"]
+            connection["password"] = self.current_connection["password"]
         elif auth_method == "client_id/client_secret":
-            endpoint["args"]["client_id"] = self.current_endpoint["client_id"]
-            endpoint["args"]["client_secret"] = self.current_endpoint["client_secret"]
+            connection["client_id"] = self.current_connection["client_id"]
+            connection["client_secret"] = self.current_connection["client_secret"]
         elif auth_method == "authorization_key":
-            endpoint["args"]["authorization_key"] = self.current_endpoint["authorization_key"]
+            connection["authorization_key"] = self.current_connection["authorization_key"]
         else:
             logger.error(f"Unexpected auth_method: {auth_method}")
 
-        self.collected_endpoints.append(endpoint)
-        self.current_endpoint = {}
+        self.collected_connections.append(connection)
+        self.current_connection = {}
 
-    def _finalize_openrouter_endpoint(self):
-        endpoint = {
-            "key": self.current_endpoint["key"],
-            "descriptor": "openrouter",
-            "caption": self.current_endpoint["caption"],
-            "args": {
-                "model_id": self.current_endpoint["model_id"],
-                "api_key": self.current_endpoint["api_key"],
-            },
+    def _finalize_openai_connection(self):
+        connection = {
+            "key": self.current_connection["key"],
+            "provider": "openai",
+            "connection_name": f"openai-api_{self.current_connection['key']}",
+            "caption": self.current_connection["caption"],
+            "model_id": self.current_connection["model_id"],
+            "api_key": self.current_connection["api_key"],
         }
-        self.collected_endpoints.append(endpoint)
-        self.current_endpoint = {}
+        self.collected_connections.append(connection)
+        self.current_connection = {}
 
     def _save_wizard_data(self) -> dict[str, Any]:
         return {
-            "collected_endpoints": self.collected_endpoints,
-            "current_endpoint": self.current_endpoint,
+            "collected_connections": self.collected_connections,
+            "current_connection": self.current_connection,
         }
+
+    def _generate_toml_config(self, default_key: str | None = None) -> str:
+        lines = ["# LLM Hub Configuration", ""]
+
+        # Generate connections section
+        for ep in self.collected_connections:
+            conn_name = ep["connection_name"]
+            lines.append(f"[connections.{conn_name}]")
+
+            if ep["provider"] == "gigachat":
+                lines.append('api_type = "gigachat"')
+                lines.append(f'api_base = "{ep["base_url"]}"')
+                auth_method = ep["auth_method"]
+                if auth_method == "user/password":
+                    lines.append(f'user = "{ep["user"]}"')
+                    lines.append(f'password = "{ep["password"]}"')
+                elif auth_method == "client_id/client_secret":
+                    lines.append(f'client_id = "{ep["client_id"]}"')
+                    lines.append(f'client_secret = "{ep["client_secret"]}"')
+                elif auth_method == "authorization_key":
+                    lines.append(f'authorization_key = "{ep["authorization_key"]}"')
+            elif ep["provider"] == "openai":
+                lines.append('api_type = "openai"')
+                lines.append('api_base = "https://api.openai.com/v1"')
+                lines.append(f'api_key = "{ep["api_key"]}"')
+            lines.append("")
+
+        # Generate routing section
+        lines.append("[routing]")
+        for ep in self.collected_connections:
+            key = ep["key"]
+            conn_name = ep["connection_name"]
+            if ep["provider"] == "gigachat":
+                lines.append(f'"{key}" = "{conn_name}.GigaChat"')
+            elif ep["provider"] == "openai":
+                model_id = ep["model_id"]
+                lines.append(f'"{key}" = "{conn_name}.{model_id}"')
+        lines.append("")
+
+        # Generate model_info section
+        for ep in self.collected_connections:
+            key = ep["key"]
+            lines.append(f"[model_info.{key}]")
+            lines.append(f'caption = "{ep["caption"]}"')
+            if default_key and key == default_key:
+                lines.append("default = true")
+            lines.append("")
+
+        # Generate groups section
+        lines.append("[groups.default]")
+        lines.append("# Allow all connections")
+        lines.append('allowed_connections = "*"')
+
+        return "\n".join(lines)
 
     def _response_with_data(self, state: str, content: dict) -> tuple[str, dict]:
         return state, content

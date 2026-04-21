@@ -11,7 +11,7 @@ services:
   gateway:
     build: {context: ./service--gateway}
     image: maestro-core--gateway
-    ports: ['7732:7732']
+    ports: ['7731:7731']
     <<: *common
   chat-manager-examples:
     build: {context: ./service--chat-manager-examples}

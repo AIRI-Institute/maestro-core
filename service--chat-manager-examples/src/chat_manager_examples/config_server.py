@@ -1,11 +1,9 @@
-from mmar_ptag import LogLevelEnum
-from pydantic import BaseModel, Field
-
 from mmar_mimpl import SettingsModel
+from pydantic import BaseModel, Field
 
 
 class LoggerConfig(BaseModel):
-    level: LogLevelEnum = LogLevelEnum.DEBUG
+    level: str = "DEBUG"
     name: str = "chat-manager-examples"
 
 

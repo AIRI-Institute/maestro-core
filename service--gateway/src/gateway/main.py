@@ -1,11 +1,18 @@
+import asyncio
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator
+
 import uvicorn
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI, Request
 from loguru import logger
 
-from gateway.dependencies import Deps
-from gateway.legacy_routes import router_legacy
+from gateway.config import Config, load_config
 from gateway.fastapi_errors import loguru_exception_handler
 from gateway.fastapi_logging_middleware import LoggingMiddleware
+from gateway.ioc import IOC
+from gateway.legacy_routes import router_legacy
 from gateway.routes import router
 
 
@@ -17,8 +24,6 @@ async def trace_id_getter(request: Request) -> str | None:
             return str(chat_id)
         if headers.get("content-type") == "application/json":
             pass
-            # body = json.loads((await request.body()).decode())
-            # todo: try to find chat_id inside request, if ok, use it as trace_id
         if client_id := headers.get("client-id"):
             return str(client_id)
     except Exception as ex:
@@ -26,36 +31,45 @@ async def trace_id_getter(request: Request) -> str | None:
     return None
 
 
-def create_app(deps: Deps) -> FastAPI:
-    config = deps.config
-    app = FastAPI(version=config.version)
+async def create_app(container: Any, lifespan: Any = None) -> FastAPI:
+    config = await container.get(Config)
+    app = FastAPI(version=config.version, lifespan=lifespan)
 
     app.add_exception_handler(Exception, loguru_exception_handler)
     app.middleware("http")(LoggingMiddleware(trace_id_getter))
 
-    app.dependency_overrides.update({Deps: lambda: deps})
     app.include_router(router)
     app.include_router(router_legacy)
+
+    setup_dishka(container, app)
     return app
 
 
-def main() -> None:
-    deps = Deps()
-    config = deps.config
-    app: FastAPI = create_app(deps)
+async def main() -> None:
+    config = load_config()
+    container = make_async_container(IOC(), context={Config: config})
+
+    logger.info(f"Config: {config!r}")
+
+    @asynccontextmanager
+    async def lifespan(*_: Any) -> AsyncGenerator[None, None]:
+        yield
+        await container.close()
+
+    app: FastAPI = await create_app(container, lifespan=lifespan)
+
     server_config = uvicorn.Config(
         app,
         host=config.fastapi.hostname,
         port=config.fastapi.port,
         workers=config.fastapi.max_workers,
-        # critical to eliminate non-colored logs: there is already logging middleware for logging
         log_level="critical",
     )
     server = uvicorn.Server(server_config)
     host_port = f"{server_config.host}:{server_config.port}"
     logger.info(f"Starting uvicorn server: {host_port}")
-    server.run()
+    await server.serve()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

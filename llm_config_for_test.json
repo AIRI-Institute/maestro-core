@@ -1,0 +1,19 @@
+{
+  "endpoints": [
+    {
+      "model": "glm-4.7",
+      "base_url": "https://api.z.ai/api/paas/v4/",
+      "api_key": "2e5868d35ee340b8ac3cf5b587aedb20.C1peXeHCEkjyo8Kq_",
+      "description": "Zhipu GLM-4.7 model via z.ai"
+    },
+    {
+      "model": "dummy-test",
+      "descriptor": "llm_hub_openai.openai_dummy.OpenAIDummy",
+      "args": {
+        "prefix": "DUMMY-TEST"
+      },
+      "description": "Dummy endpoint for testing via config file"
+    }
+  ],
+  "default_model": "glm-4.7"
+}

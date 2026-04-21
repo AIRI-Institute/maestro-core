@@ -9,13 +9,13 @@ dependencies = [
     "pydantic~=2.12.5",
     "pydantic-settings~=2.12.0",
     "loguru~=0.7.2",
-    "telethon==1.38.1",
+    "dishka~=1.8.0",
 
-    "mmar-ptag~=1.0.18",
-    "mmar-mapi~=1.4.5",
-    "mmar-utils~=1.1.15",
-    "mmar-mcli~=1.0.10",
-    "mmar-mimpl~=1.0.1",
+    "mmar-ptag~=1.1.2",
+    "mmar-mapi~=1.6.0",
+    "mmar-utils~=1.1.18",
+    "mmar-mcli~=1.3.1",
+    "mmar-mimpl~=1.1.4",
 ]
 
 [tool.ruff]

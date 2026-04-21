@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, model_validator
 
 
 def _validate_page_range(v: tuple[int, int]) -> tuple[int, int]:
@@ -82,14 +82,47 @@ class ExtractedPageImage(ExtractedImage):
 
     pass
 
+class ExtractedMarkdown(BaseModel):
+    page: int
+    text: str
+
+
+def _validate_no_duplicate_markdowns(v: list[ExtractedMarkdown]) -> list[ExtractedMarkdown]:
+    """Validate that no two ExtractedMarkdown items have the same page number."""
+    seen_pages = set()
+    for item in v:
+        if item.page in seen_pages:
+            raise ValueError(f"Duplicate page number: {item.page}")
+        seen_pages.add(item.page)
+    return v
+
 
 class DocExtractionOutput(BaseModel):
     spec: DocExtractionSpec
-    text: str = ""
+    text: str = "" # `text` is a concatenation of all `markdowns[*].text` (pages joined together)
     tables: list[ExtractedTable] = []
     pictures: list[ExtractedPicture] = []
     page_images: list[ExtractedPageImage] = []
+    markdowns: Annotated[list[ExtractedMarkdown], AfterValidator(_validate_no_duplicate_markdowns)] = []
 
+    @model_validator(mode="after")
+    def _validate_pages_in_range(self) -> "DocExtractionOutput":
+        """Validate that all page numbers are within spec.page_range if specified."""
+        if self.spec.page_range is None:
+            return self
+        start, end = self.spec.page_range
+        def _check(name: str, page: int) -> None:
+            if page < start or page > end:
+                raise ValueError(f"{name} page {page} is outside of specified range [{start}, {end}]")
+        for item in self.markdowns:
+            _check("markdowns", item.page)
+        for item in self.tables:
+            _check("tables", item.page)
+        for item in self.pictures:
+            _check("pictures", item.page)
+        for item in self.page_images:
+            _check("page_images", item.page)
+        return self
 
 class DocumentExtractorAPI:
     def extract(self, *, resource_id: ResourceId, spec: DocExtractionSpec = DOC_SPEC_DEFAULT) -> ResourceId | None:

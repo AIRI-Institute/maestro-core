@@ -1,8 +1,9 @@
 import os
+from typing import Any
 
-from mmar_ptag import LogLevelEnum
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class FilesConfig(BaseModel):
     allowed_content_types: set[str] = {
@@ -33,7 +34,7 @@ class FastApiConfig(BaseModel):
 
     max_workers: int = 5
     hostname: str = "0.0.0.0"
-    port: int = 7732
+    port: int = 7731
     log_level: str = "error"
 
 
@@ -43,7 +44,12 @@ class AddressesConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     name: str = "gateway"
-    level: LogLevelEnum = LogLevelEnum.DEBUG
+    level: str = "DEBUG"
+
+
+class ChatStorageConfig(BaseModel):
+    uri: str
+    extra: dict[str, Any] | None = None
 
 
 class Config(BaseSettings):
@@ -54,13 +60,16 @@ class Config(BaseSettings):
     logger: LoggingConfig = LoggingConfig()
     fastapi: FastApiConfig = FastApiConfig()
     addresses: AddressesConfig = AddressesConfig()
+    chat_storage: ChatStorageConfig
+
+    openai_api_base: str = ""
+    openai_api_key: str = ""
+    # hotfix
+    hide_models: list[str] = []
 
     end_message: str = "Прочитайте список возможных диагнозов и выберите специалиста для записи на приём."
 
-    db_path: str = "/mnt/data/maestro/dev/logs"
-    archive_path: str = "/mnt/data/maestro/dev/archived_logs"
-
-    default_entrypoint: dict = {"entrypoint_key": "giga-max-2", "caption": "GigaChat MAX 2"}
+    default_model: str = "giga-max-2"
 
 
 def load_config(env_file: str | None = None) -> Config:

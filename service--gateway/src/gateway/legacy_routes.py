@@ -1,10 +1,11 @@
 from typing import Annotated
 
+from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, Header
 
-from gateway.dependencies import Deps
 from gateway.fastapi_errors import ERR_STATUSES
 from gateway.legacy import ChatRequestOld, ChatResponseOld
+from gateway.maestro_gateway import MaestroGateway
 from gateway.models import ChatResponse
 from gateway.validators import validate_client
 
@@ -13,7 +14,7 @@ D = Depends
 ClientIdHeader = Annotated[Annotated[str, D(validate_client)], Header()]
 
 
-def validate_client_request_old(request: ChatRequestOld, deps: Deps = D()) -> ChatRequestOld:
+def validate_client_request_old(request: ChatRequestOld) -> ChatRequestOld:
     validate_client(request.context.client_id)
     return request
 
@@ -22,8 +23,12 @@ ValidatedChatRequestOld = Annotated[ChatRequestOld, D(validate_client_request_ol
 
 
 @router_legacy.post("/api/v0/send")
-async def get_response_v6(request: ValidatedChatRequestOld, deps: Deps = D()) -> ChatResponseOld:
-    response: ChatResponse = await deps.gateway.send_message_by_chat_request_old(request)
+@inject
+async def get_response_v6(
+    request: ValidatedChatRequestOld,
+    gateway: FromDishka[MaestroGateway] = Depends(),
+) -> ChatResponseOld:
+    response: ChatResponse = await gateway.send_message_by_chat_request_old(request)
     res = ChatResponseOld(
         context=request.context,
         messages=request.messages,

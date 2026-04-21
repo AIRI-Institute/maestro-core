@@ -3,7 +3,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypeVar, cast
 
-from pydantic import Field
+from pydantic import ConfigDict, Field, model_validator
 from typing_extensions import TypedDict
 
 from mmar_mapi.models.base import Base
@@ -55,6 +55,10 @@ class Context(Base):
         uid, sid, cid = self.user_id, self.session_id, self.client_id
         return f"{cid}_{uid}_{sid}"
 
+    def _get_extra(self, field, default):
+        res = (self.extra or {}).get(field, default)
+        return res
+
     def _get_deprecated_extra(self, field, default):
         # legacy: eliminate after migration
         res = (self.extra or {}).get(field, default)
@@ -62,6 +66,9 @@ class Context(Base):
         return res
 
     # fmt: off
+    @property
+    def model(self) -> str: return self._get_extra('model', '')
+
     @property
     def sex(self) -> bool: return self._get_deprecated_extra('sex', True)
     @property
@@ -119,6 +126,18 @@ def _get_resource_id(obj: Content) -> str | None:
     return None
 
 
+def _get_many_resource_ids(obj: Content) -> list[str]:
+    if isinstance(obj, list):
+        ids = []
+        for el in obj:
+            ids.extend(_get_many_resource_ids(el))
+        return ids
+    if isinstance(obj, dict) and obj.get("type") == "resource_id":
+        rid = _get_field(obj, "resource_id", str)
+        return [rid] if rid else []
+    return []
+
+
 def _get_resource_name(obj: Content) -> str | None:
     if isinstance(obj, list):
         return next((el for el in map(_get_resource_name, obj) if el), None)
@@ -157,6 +176,39 @@ class BaseMessage(Base):
     date_time: str = Field(default_factory=now_pretty, examples=[_EXAMPLE_DT])
     extra: StrDict | None = Field(default=None, examples=[None])
 
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_content_sugar(cls, data: Any) -> Any:
+        """Handle sugar parameters for content creation."""
+        if not isinstance(data, dict):
+            return data
+
+        # Sugar parameters from make_content
+        sugar_keys = {"text", "resource_id", "resource", "command", "widget"}
+        make_content_kwargs = sugar_keys & data.keys()
+
+        if not make_content_kwargs:
+            return data
+
+        if "content" in data:
+            # Both sugar parameters and content provided - this is an error
+            params = ", ".join(repr(k) for k in sorted(make_content_kwargs))
+            raise ValueError(
+                f"Cannot specify both 'content' and sugar parameters ({params}). "
+                f"Use 'content' parameter directly, or use sugar parameters alone."
+            )
+
+        # Build content using make_content
+        kwargs = {k: data[k] for k in make_content_kwargs}
+        data = dict(data)  # Don't mutate original
+        for key in make_content_kwargs:
+            del data[key]
+        data["content"] = make_content(**kwargs)
+
+        return data
+
     @property
     def text(self) -> str:
         return _get_text(self.content)
@@ -171,6 +223,10 @@ class BaseMessage(Base):
     @property
     def resource_id(self) -> str | None:
         return _get_resource_id(self.content)
+
+    @property
+    def many_resource_ids(self) -> list[str]:
+        return _get_many_resource_ids(self.content)
 
     @property
     def resource_name(self) -> str | None:

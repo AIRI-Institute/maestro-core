@@ -1,8 +1,7 @@
 from types import SimpleNamespace
 
-from pydantic import BaseModel, Field
-
 from mmar_mimpl import SettingsModel
+from pydantic import BaseModel, Field
 
 TRACKS_MODULE = "chat_manager_examples.tracks"
 DOMAINS_ALL = {"examples": ("Examples", "Примеры")}
@@ -20,7 +19,7 @@ class AddressesConfig(BaseModel):
 
 
 class MessagesErrorConfig(BaseModel):
-    no_such_track_text: str = "Этот сценарий еще не проработан."
+    no_such_track: str = "Этот сценарий еще не проработан."
 
 
 class MessagesConfig(BaseModel):
@@ -32,4 +31,6 @@ class Config(SettingsModel):
 
     messages: MessagesConfig = MessagesConfig()
     addresses: AddressesConfig = AddressesConfig()
-    hide_tracks_domains: bool = False
+
+    openai_api_base: str = "http://llm-hub:40631/v1"
+    openai_api_key: str = "_"

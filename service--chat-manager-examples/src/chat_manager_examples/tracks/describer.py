@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from loguru import logger
-
-from chat_manager_examples.config import DOMAINS
 from mmar_mapi import Chat, FileStorage, HumanMessage
-from mmar_mapi.services import BinaryClassifiersAPI, LLMHubAPI, TextExtractorAPI
+from mmar_mapi.services import BinaryClassifiersAPI, TextExtractorAPI
 from mmar_mapi.tracks import SimpleTrack, TrackResponse
 from mmar_utils import pretty_prefix
+
+from chat_manager_examples.config import DOMAINS
 
 OUT_PREFIX_SIZE = 4000
 
@@ -45,12 +45,10 @@ class Describer(SimpleTrack):
     def __init__(
         self,
         file_storage: FileStorage,
-        llm_hub: LLMHubAPI,
         question_detector: BinaryClassifiersAPI,
         text_extractor: TextExtractorAPI,
     ):
         self.file_storage = file_storage
-        self.llm_hub = llm_hub
         self.question_detector = question_detector
         self.text_extractor = text_extractor
 

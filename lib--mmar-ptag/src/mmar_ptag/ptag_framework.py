@@ -2,13 +2,13 @@
 
 import types
 from collections.abc import Callable
-from contextvars import ContextVar
 from contextlib import contextmanager
 from typing import Generic, TypeVar, cast
 
 from google.protobuf.message import Message
 from grpc import Channel, RpcError, ServicerContext, StatusCode, insecure_channel
 from loguru import logger
+from mmar_mimpl import TRACE_ID, TRACE_ID_DEFAULT, TRACE_ID_VAR, installed_trace_id
 from mmar_utils.utils_inspect import (
     FuncMetadata,
     Metadatas,
@@ -19,51 +19,41 @@ from mmar_utils.utils_inspect import (
     prettify_arg_metadata,
 )
 
-from .logging_configuration import TRACE_ID, TRACE_ID_DEFAULT
-from .ptag_pb2 import PTAGRequest, PTAGResponse
-from .ptag_pb2_grpc import PTAGServiceServicer, PTAGServiceStub, add_PTAGServiceServicer_to_server
+from mmar_ptag.ptag_pb2 import PTAGRequest, PTAGResponse
+from mmar_ptag.ptag_pb2_grpc import PTAGServiceServicer, PTAGServiceStub, add_PTAGServiceServicer_to_server
 
 T = TypeVar("T")
-TRACE_ID_VAR: ContextVar[str] = ContextVar(TRACE_ID, default="")
 
-
-@contextmanager
-def installed_trace_id(trace_id):
-    token = TRACE_ID_VAR.set(trace_id)
-    try:
-        yield
-    finally:
-        TRACE_ID_VAR.reset(token)
 
 @contextmanager
 def nothing(*args, **kwargs):
     yield
-    
+
 
 class TraceIdProxy(Generic[T]):
     def __init__(self, service: T):
         self.service = service
-        
+
         _, metadatas = extract_and_validate_obj_methods_metadatas(service)
         check_valid_trace_id_in_metadatas(metadatas)
         self.metadatas = metadatas
-        
+
         self._set_proxy_methods()
-    
+
     def _set_proxy_methods(self):
         for mm in self.metadatas.values():
             proxy = self._make_trace_id_proxy(mm)
             bound_func = types.MethodType(proxy, self)
             setattr(self, mm.name, bound_func)
-    
+
     def _make_trace_id_proxy(self, mm):
         def wrapped(proxy_self, *args, **kwargs):
-            trace_id = kwargs.pop('trace_id', None)
-            context = nothing() if trace_id is None else logger.contextualize(trace_id=trace_id)
-            with context:
+            trace_id = kwargs.pop(TRACE_ID, None)
+            with installed_trace_id(trace_id=trace_id):
                 return getattr(proxy_self.service, mm.name)(*args, **kwargs)
+
         return wrapped
-    
+
     def __str__(self):
         return f"TraceIdProxy('{get_full_name(self.service)}')"
 
@@ -115,13 +105,12 @@ class WrappedPTAGService(PTAGServiceServicer):
             input_kwargs = dict(zip(input_names, input_obj))
 
             with installed_trace_id(trace_id=trace_id):
-                with logger.contextualize(trace_id=trace_id):
-                    output_obj = method(**input_kwargs)
+                output_obj = method(**input_kwargs)
 
             payload = result_adapter.dump_json(output_obj)
             return PTAGResponse(FunctionName=method_name, Payload=payload)
         except Exception as e:
-            with logger.contextualize(trace_id=trace_id):
+            with installed_trace_id(trace_id=trace_id):
                 logger.exception(f"Failed to process request: {e}")
             context.set_code(StatusCode.INTERNAL)
             context.set_details(str(e))
@@ -159,14 +148,22 @@ def _create_insecure_channel_stub(address):
 
 
 class ClientProxy(Generic[T]):
-    def __init__(self, service_interface: type[T], address, channel_stub_func: ChannelStubFunc | None = None):
+    def __init__(
+        self,
+        service_interface: type[T],
+        address,
+        channel_stub_func: ChannelStubFunc | None = None,
+        reconnect_attempts: int = 5,
+    ):
         self.channel_stub_func = channel_stub_func or _create_insecure_channel_stub
         if not isinstance(service_interface, type):
             si_name = type(service_interface).__name__
             raise ValueError(
-                f"Expected type, found: {type(service_interface)}. Probably you passed ptag_client({si_name}(), ...) instead of ptag_client({si_name}, ...)"
+                f"Expected type, found: {type(service_interface)}. "
+                f"Probably you passed ptag_client({si_name}(), ...) instead of ptag_client({si_name}, ...)"
             )
         self.service_interface = service_interface
+        self.reconnect_attempts = reconnect_attempts
 
         metadatas = extract_interface_metadatas(service_interface)
         check_valid_trace_id_in_metadatas(metadatas)
@@ -179,37 +176,74 @@ class ClientProxy(Generic[T]):
     def _set_proxy_methods(self):
         for mm in self.metadatas.values():
             proxy = make_proxy(self._stub, mm)
+            # Store the actual method name on the proxy function for reconnection
+            proxy.__ptag_method_name__ = mm.name
             proxy_wrapped = self._wrap_method_with_reconnect(proxy)
             bound_func = types.MethodType(proxy_wrapped, self)
             setattr(self, mm.name, bound_func)
 
-    # fix, there is 2 responsibilities now: reconnect and return method
-    def _reconnect(self, method_name):
+    def _reconnect(self, attempt: int):
+        """Close existing channel and create a new one."""
         try:
             self._channel.close()
         except Exception:
             pass
         self._channel, self._stub = self.channel_stub_func(self.address)
         self._set_proxy_methods()
-        logger.info(f"Reconnected on {self.address}...")
-        return getattr(self, method_name)
+        logger.info(f"Address {self.address} reconnected (attempt {attempt})...")
+
+    @staticmethod
+    def _is_retryable_error(ex: Exception) -> bool:
+        """Check if an error is retryable.
+
+        Validation errors (API mismatches) are NOT retryable.
+        Only transient errors like UNAVAILABLE should trigger reconnection.
+        """
+        if isinstance(ex, RpcError):
+            code = ex.code()
+            if code == StatusCode.UNAVAILABLE:
+                return True
+            if code == StatusCode.INTERNAL:
+                # INTERNAL errors include both transient failures AND validation errors.
+                # Validation errors contain specific patterns in the details.
+                details = ex.details() if hasattr(ex, "details") else str(ex)
+                # Don't retry if it's a validation error from API mismatch
+                if "validation error" in details.lower():
+                    return False
+                if "input should be" in details.lower():
+                    return False
+                if "field required" in details.lower():
+                    return False
+                # For other INTERNAL errors, don't retry by default
+                # They're typically application errors, not transient failures
+                return False
+        if isinstance(ex, ValueError):
+            return "Cannot invoke RPC on closed channel!" in str(ex)
+        return False
 
     def _wrap_method_with_reconnect(self, raw_method):
+        method_name = getattr(raw_method, "__ptag_method_name__", raw_method.__name__)
+
         def wrapped(proxy_self, *args, **kwargs):
-            try:
-                return raw_method(proxy_self, *args, **kwargs)
-            except RpcError as ex:
-                if ex.code() in (StatusCode.UNAVAILABLE, StatusCode.DEADLINE_EXCEEDED):
-                    logger.error(f"ERROR: [{ex.details()}], reconnecting...")
-                    fresh_method = proxy_self._reconnect(raw_method.__name__)
-                    return fresh_method(*args, **kwargs)
-                raise
-            except ValueError as ex:
-                if str(ex) == 'Cannot invoke RPC on closed channel!':
-                    logger.error(f"ERROR: [{ex}], reconnecting...")
-                    fresh_method = proxy_self._reconnect(raw_method.__name__)
-                    return fresh_method(*args, **kwargs)
-                raise
+            for attempt in range(proxy_self.reconnect_attempts + 1):
+                try:
+                    if attempt > 0:
+                        proxy_self._reconnect(attempt)
+                        # After reconnection, use the new stub directly via raw_method
+                        # We need to recreate raw_method with the updated stub
+                        func_metadata = proxy_self.metadatas[method_name]
+                        raw_proxy = make_proxy(proxy_self._stub, func_metadata)
+                        return raw_proxy(proxy_self, *args, **kwargs)
+                    return raw_method(proxy_self, *args, **kwargs)
+                except Exception as ex:
+                    if not proxy_self._is_retryable_error(ex):
+                        raise
+                    logger.error(
+                        f"Address {proxy_self.address} error "
+                        f"(attempt {attempt + 1}/{proxy_self.reconnect_attempts + 1}): {ex}"
+                    )
+
+            raise Exception(f"Address {proxy_self.address} failed after {proxy_self.reconnect_attempts + 1} attempts")
 
         return wrapped
 
@@ -244,10 +278,10 @@ def _try_fix_address(address: int | str):
     return address
 
 
-def ptag_client(service_interface: type[T], address: str) -> T:
+def ptag_client(service_interface: type[T], address: str, reconnect_attempts: int = 5) -> T:
     """
     Create a dynamic client for the given interface at the provided gRPC address.
     """
     address = _try_fix_address(address)
-    proxy = ClientProxy(service_interface, address)
+    proxy = ClientProxy(service_interface, address, reconnect_attempts=reconnect_attempts)
     return cast(T, proxy)

@@ -1,11 +1,11 @@
 import json
 from typing import Any
 
-from pydantic import ConfigDict, BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class Base(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     @model_validator(mode="before")
     @classmethod

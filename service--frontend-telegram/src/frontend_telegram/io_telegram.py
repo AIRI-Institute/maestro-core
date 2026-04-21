@@ -37,7 +37,7 @@ async def extract_content(update: Update) -> Content | None:
         logger.info(f"Catched user callback: {data}")
         return make_content(command={"query": data})
 
-    text = update.message and update.message.text
+    text = update.message and (update.message.text or update.message.caption)
     # `or None` to prevent empty content
     return make_content(text=text) or None
 
@@ -137,7 +137,7 @@ async def send_resource(update: Update, context: AssistantContext, file_data: Fi
     resource_fname, resource_bytes = file_data
     resource_ext = resource_fname.split(".", 1)[-1]
     sz = len(resource_bytes)
-    logger.info(f"Going to send resource {resource_fname}, size: {sz}")
+    logger.info(f"Going to send resource '{resource_fname}', size: {sz}")
     if resource_ext in {"jpg", "jpeg"}:
         file_document = InputFile(obj=resource_bytes)
         message = await update.effective_user.send_photo(photo=file_document)

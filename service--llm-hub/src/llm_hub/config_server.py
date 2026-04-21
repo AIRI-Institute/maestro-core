@@ -1,14 +1,17 @@
+import os
+
 from mmar_mimpl import SettingsModel
-from mmar_ptag import LogLevelEnum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic_settings import SettingsConfigDict
 
 
 class LoggerConfig(BaseModel):
-    level: LogLevelEnum = LogLevelEnum.DEBUG
-    name: str = "llm-hub"
+    name: str = "llm-hub-openai"
+    level: str = "DEBUG"
 
 
 class ConfigServer(SettingsModel):
     max_workers: int = 10
+    host: str = "0.0.0.0"
     port: int = 40631
-    logger: LoggerConfig = Field(default_factory=LoggerConfig)
+    logger: LoggerConfig

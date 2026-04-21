@@ -1,24 +1,26 @@
 from http import HTTPStatus
 from typing import Annotated
 
+from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from loguru import logger
-from mmar_mapi import Context
+from mmar_mapi import Context, FileStorage
 
-from gateway.dependencies import Deps
+from gateway.config import Config
 from gateway.fastapi_errors import ERR_STATUSES, FailedToUploadException, FileNotFoundException, MalformedException
 from gateway.fastapi_files import load_file, make_streaming_response
 from gateway.legacy import as_file_data, upload_resource_maybe
+from gateway.maestro_gateway import MaestroGateway
 from gateway.models import (
     ChatRequestMessages,
     ChatResponse,
     CreateResponse,
     DBChatPreviews,
     DomainsResponse,
-    EntrypointsResponse,
     FileData,
     HistoryResponse,
+    ModelsResponse,
     TracksResponse,
     UploadManyRequest,
     UploadResponse,
@@ -31,12 +33,22 @@ router = APIRouter(responses=ERR_STATUSES)
 
 
 @router.get("/api/v2/chats")
-async def get_chat_previews(client_id: ClientIdHeader, user_id: str, deps: Deps = D()) -> DBChatPreviews:
-    return await deps.gateway.get_chat_previews(client_id, user_id)
+@inject
+async def get_chat_previews(
+    client_id: ClientIdHeader,
+    user_id: str,
+    gateway: FromDishka[MaestroGateway],
+) -> DBChatPreviews:
+    return await gateway.get_chat_previews(client_id, user_id)
 
 
 @router.post("/api/v3/chats")
-async def create(client_id: ClientIdHeader, context: Context, deps: Deps = D()) -> CreateResponse:
+@inject
+async def create(
+    client_id: ClientIdHeader,
+    context: Context,
+    gateway: FromDishka[MaestroGateway],
+) -> CreateResponse:
     if context.client_id == "":
         context.client_id = client_id
     elif client_id != context.client_id:
@@ -47,47 +59,69 @@ async def create(client_id: ClientIdHeader, context: Context, deps: Deps = D()) 
     validate_no_underscores(context, "user_id")
     validate_no_underscores(context, "session_id")
 
-    response: CreateResponse = await deps.gateway.create_chat(context=context)
+    response: CreateResponse = await gateway.create_chat(context=context)
     return response
 
 
 @router.get("/api/v3/chats/{chat_id}")
-async def get_chat(client_id: ClientIdHeader, chat_id: str, deps: Deps = D()) -> HistoryResponse:
-    err, chat = await deps.gateway.get_chat(chat_id=chat_id)
+@inject
+async def get_chat(
+    client_id: ClientIdHeader,
+    chat_id: str,
+    gateway: FromDishka[MaestroGateway],
+) -> HistoryResponse:
+    err, chat = await gateway.get_chat(chat_id=chat_id)
     if err:
         logger.error(f"Failed to delete chat_id={chat_id}: {err}")
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+    assert chat is not None
     messages = [msg for msg in chat.messages if msg.is_human or msg.is_ai]
     return HistoryResponse(chat_id=chat_id, messages=messages)
 
 
 @router.post("/api/v3/chats/{chat_id}")
-async def send(client_id: ClientIdHeader, chat_id: str, request: ChatRequestMessages, deps: Deps = D()) -> ChatResponse:
+@inject
+async def send(
+    client_id: ClientIdHeader,
+    chat_id: str,
+    request: ChatRequestMessages,
+    gateway: FromDishka[MaestroGateway],
+) -> ChatResponse:
     messages = request.messages
     if len(messages) != 1:
         raise MalformedException(detail=f"One message expected, found: {len(messages)}")
     msg = messages[0]
 
-    response: ChatResponse = await deps.gateway.send_message_by_chat_id(chat_id=chat_id, msg=msg)
+    response: ChatResponse = await gateway.send_message_by_chat_id(chat_id=chat_id, msg=msg)
     return response
 
 
 @router.delete("/api/v3/chats/{chat_id}")
-async def delete_chat(client_id: ClientIdHeader, chat_id: str, deps: Deps = D()) -> None:
-    err = await deps.gateway.delete_chat(chat_id)
+@inject
+async def delete_chat(
+    client_id: ClientIdHeader,
+    chat_id: str,
+    gateway: FromDishka[MaestroGateway],
+) -> None:
+    err = await gateway.delete_chat(chat_id)
     if err:
         logger.error(f"Failed to delete chat_id={chat_id}: {err}")
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-    return None
 
 
 @router.post("/api/v2/files/upload")
-async def upload(client_id: ClientIdHeader, file: UploadFile | None = None, deps: Deps = D()) -> UploadResponse:
-    f_data: FileData | None = file and await load_file(deps.config, file)
+@inject
+async def upload(
+    client_id: ClientIdHeader,
+    file: UploadFile | None = None,
+    config: FromDishka[Config] = Depends(),
+    file_storage: FromDishka[FileStorage] = Depends(),
+) -> UploadResponse:
+    f_data: FileData | None = await load_file(config, file) if file else None
     if not f_data:
         raise FileNotFoundException()
     f_name, f_content = f_data
-    named_resource_id = upload_resource_maybe(deps.file_storage, f_data)
+    named_resource_id = upload_resource_maybe(file_storage, f_data)
     if not named_resource_id:
         raise FailedToUploadException()
     resource_name, resource_id = named_resource_id
@@ -96,38 +130,68 @@ async def upload(client_id: ClientIdHeader, file: UploadFile | None = None, deps
 
 
 @router.post("/api/v1/files/upload_dir")
-async def upload_dir(client_id: ClientIdHeader, request: UploadManyRequest, deps: Deps = D()) -> UploadResponse:
+@inject
+async def upload_dir(
+    client_id: ClientIdHeader,
+    request: UploadManyRequest,
+    file_storage: FromDishka[FileStorage] = Depends(),
+) -> UploadResponse:
     logger.info(f"Files received: {request.resource_ids}")
-    rid = deps.file_storage.upload_dir(request.resource_ids)
+    rid = file_storage.upload_dir(list(request.resource_ids))
     return UploadResponse(resource_id=rid, error=None)
 
 
 @router.get("/api/v2/files/download_text")
-async def download_text(client_id: ClientIdHeader, resource_id: str, deps: Deps = D()) -> str:
-    res: str = deps.file_storage.download_text(resource_id)
+@inject
+async def download_text(
+    client_id: ClientIdHeader,
+    resource_id: str,
+    file_storage: FromDishka[FileStorage] = Depends(),
+) -> str:
+    res: str = file_storage.download_text(resource_id)
     return res
 
 
 @router.get("/api/v2/files/download_bytes")
-async def download_bytes(client_id: ClientIdHeader, resource_id: str, deps: Deps = D()) -> StreamingResponse:
-    f_data = as_file_data(deps.file_storage, resource_id)
+@inject
+async def download_bytes(
+    client_id: ClientIdHeader,
+    resource_id: str,
+    file_storage: FromDishka[FileStorage] = Depends(),
+) -> StreamingResponse:
+    f_data = as_file_data(file_storage, resource_id)
     res = make_streaming_response(f_data)
     return res
 
 
 @router.get("/api/v3/info/domains")
-async def get_domains(client_id: ClientIdHeader = "", language_code: str = "ru", deps: Deps = D()) -> DomainsResponse:
-    return await deps.gateway.get_domains(language_code=language_code, client_id=client_id)
+@inject
+async def get_domains(
+    client_id: ClientIdHeader = "",
+    language_code: str = "ru",
+    gateway: FromDishka[MaestroGateway] = Depends(),
+) -> DomainsResponse:
+    domains = await gateway.get_domains(language_code=language_code, client_id=client_id)
+    return DomainsResponse(domains=domains)
 
 
 @router.get("/api/v3/info/tracks")
-async def get_tracks(client_id: ClientIdHeader = "", language_code: str = "ru", deps: Deps = D()) -> TracksResponse:
-    return await deps.gateway.get_tracks(language_code=language_code, client_id=client_id)
+@inject
+async def get_tracks(
+    client_id: ClientIdHeader = "",
+    language_code: str = "ru",
+    gateway: FromDishka[MaestroGateway] = Depends(),
+) -> TracksResponse:
+    tracks = await gateway.get_tracks(language_code=language_code, client_id=client_id)
+    return TracksResponse(tracks=tracks)
 
 
-@router.get("/api/v3/info/entrypoints")
-async def get_entrypoints(cid: ClientIdHeader = "", language_code: str = "ru", d: Deps = D()) -> EntrypointsResponse:
-    return await d.gateway.get_entrypoints(cid)
+@router.get("/api/v3/models")
+@inject
+async def get_models(
+    gateway: FromDishka[MaestroGateway] = Depends(),
+) -> ModelsResponse:
+    return await gateway.get_models()
 
 
 @router.get("/api/health/readiness", description="Is app ready")

@@ -18,19 +18,21 @@ make build setup-env up
 make run-dummy records='dummy=hello dummy=test dummy=exit'
 ```
 ## Setup LLM
-LLM integrations supported. (Right now only `OpenRouter` or `GigaChat`)
+LLM integrations supported via OpenAI-compatible API:
+- **OpenAI-compatible** providers (OpenAI, Anthropic, DeepSeek, OpenRouter, etc.)
+- **GigaChat** (Sber)
 
-If you have keys, you need to setup `llm_config.json`, configuration for LLM.
-### Variant 1
-- copy `llm_config.json.example` to `llm_config.json`
-- edit `llm_config.json` :: fill `???` placeholders with your keys, fix `model_id` if you need, remove excess llm_config
-- copy `llm_config.json` to `./data`, run `make update-llm-config`
-- restart llm-hub, run `make restart-llm-hub`
-### Variant 2
-- use wizard to setup `llm_config.json`: run `make run-wizard`
-- follow MAESTRO CLI steps.
-- copy `llm_config.json` to `./data`, run `make update-llm-config`
-- restart llm-hub, run `make restart-llm-hub`
+Configuration is done via TOML format in `service--llm-hub/`:
+### Manual Configuration
+- navigate to `service--llm-hub/`
+- copy `llm-config.toml.example` to `llm-config.toml`
+- edit `llm-config.toml`:
+  - configure `[connections.*]` sections with your API keys
+  - set up `[routing]` to map model names
+  - configure `[model_info.*]` with captions and defaults
+- restart llm-hub: `make restart-llm-hub`
+
+See `service--llm-hub/llm-config.toml.example` for detailed configuration examples.
 ## Run LLM example
 ```sh
 make run-chatbot records='start="Какая ты языковая модель?"'

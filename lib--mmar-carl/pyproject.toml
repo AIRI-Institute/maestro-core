@@ -1,8 +1,8 @@
 [project]
 name = "mmar-carl"
 # dynamic version is not supported yet on uv_build
-version = "0.0.14"
-description = "Collaborative Agent Reasoning Library"
+version = "0.2.0"
+description = "Collaborative Agent Reasoning Library with multi-step type support"
 authors = [{name = "glazkov", email = "glazkov@airi.net"}, {name = "shaposhnikov", email = "shaposhnikov@airi.net"}, {name = "tagin", email = "tagin@airi.net"}]
 license = "MIT"
 license-files = ["LICENSE"]
@@ -24,15 +24,26 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "pydantic>=2.11.7",
+    "simpleeval>=1.0.0",
+    "mmar-utils~=1.1.18",
+    "openai>=1.0.0",
+]
+
+[project.optional-dependencies]
+vector-search = [
     "faiss-cpu>=1.7.0",
     "fastembed>=0.7.3",
     "numpy>=1.21.0",
-    "pydantic>=2.11.7",
-
-    "mmar-llm~=2.0.11",
-    "mmar-mapi~=1.4.4",
-    "mmar-ptag~=1.0.20",
-    "mmar-utils~=1.1.17",
+]
+mcp = ["mcp>=1.0.0"]
+langfuse = ["langfuse>=3.0.0,<4.0.0"]
+pandas = ["pandas>=1.0.0"]
+all = [
+    "mmar-carl[vector-search]",
+    "mmar-carl[mcp]",
+    "mmar-carl[langfuse]",
+    "mmar-carl[pandas]",
 ]
 
 [dependency-groups]
@@ -58,13 +69,14 @@ line-length = 120
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+filterwarnings = [
+    # External library warnings (faiss/swig) - not fixable in this codebase
+    "ignore:builtin type .* has no __module__:DeprecationWarning",
+]
 
 [pytest]
 python_files = [ "test_*.py" ]
 testpaths = [ "tests" ]
-
-# action:message_regex:warning_class:module_regex:line
-filterwarnings = [ "error" ]
 
 [mypy]
 ignore_missing_imports = true

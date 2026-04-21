@@ -24,7 +24,7 @@ async def request_with_session(
     data: FormData | None = None,
     headers_extra: dict[str, str] | None = None,
 ) -> bytes | dict:
-    headers_all = headers | (headers_extra or {})
+    headers_all = (headers or {}) | (headers_extra or {})
     async with ClientSession(headers={}) as session:
         timeout_ = ClientTimeout(timeout) if isinstance(timeout, int) else None
         async with session.request(

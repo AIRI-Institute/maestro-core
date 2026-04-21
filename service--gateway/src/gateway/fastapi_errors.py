@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel
 
+
 class BaseErrorSchema(BaseModel):
     detail: list
 

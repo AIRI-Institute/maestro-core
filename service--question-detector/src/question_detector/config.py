@@ -8,10 +8,18 @@ from mmar_mimpl import SettingsModel
 
 DATA_DIR = Path(__file__).parent / "data"
 
+# Expected embedding dimension for the GigaEmbedding model
+# The classifier was trained with this specific dimension
+EXPECTED_EMBEDDING_DIM = 1024
+
 
 class ModelsConfig(BaseModel):
     classifier: ExistingFile = f"{DATA_DIR}/classifier.jbl"
     first_word_list_path: ExistingFile = f"{DATA_DIR}/first_word_list.csv"
+
+    # Expected embedding dimension for the embedding model
+    # The classifier was trained expecting this specific dimension
+    expected_embedding_dim: int = EXPECTED_EMBEDDING_DIM
 
     basic_check_prompt: str = str(
         "Определи, является ли сообщение: <сообщение>{text}</сообщение>\n"
@@ -25,7 +33,7 @@ class AddressesConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     max_retries: int = 3
-    endpoint_key: str = "giga-max-sberai"
+    question_detector_model: str = ""
 
 
 class Config(SettingsModel):
