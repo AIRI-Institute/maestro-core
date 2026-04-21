@@ -5,6 +5,7 @@
   - Replaced JSON configuration with TOML format (`llm-config.toml`)
   - Unified API for multiple providers: OpenAI, Anthropic, GigaChat, DeepSeek, OpenRouter
   - See `service--llm-hub/llm-config.toml.example` for migration guide
+- **service** `gateway`: supported PostgreSQL as storage for chats
 - updated **library** `mmar-carl`: see [./lib--mmar-carl/RELEASE.md](./lib--mmar-carl/RELEASE.md) for details
 - removed **service** `llm-hub-monitoring`: LangFuse has native OpenAI API integrations
 - other minor fixes and improvements
